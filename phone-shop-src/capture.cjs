@@ -1,0 +1,2 @@
+const {chromium}=require('/home/user/node_modules/playwright');
+(async()=>{const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});const page=await browser.newPage({viewport:{width:1200,height:750}});page.on('pageerror',e=>console.log('error',e.stack));await page.goto('http://127.0.0.1:4173/',{waitUntil:'load'});await page.waitForTimeout(1400);await page.screenshot({path:'/home/user/phone-shop-src/screen-tuned.png'});await browser.close()})();

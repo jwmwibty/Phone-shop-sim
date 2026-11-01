@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#171a2a">
+  <title>Phone Shop Tycoon · First Person</title>
+  <style>/*__CSS__*/</style>
+</head>
+<body>
+  <main id="game-root" aria-label="Phone Shop Tycoon game">
+    <canvas id="game-canvas" aria-label="First person view of your phone shop"></canvas>
+    <div id="input-surface" aria-label="Drag to look around or click to use mouse look"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="hud-header">
+      <div class="brand-lockup">
+        <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><rect x="7.5" y="3" width="9" height="18" rx="2.3" stroke="currentColor" stroke-width="1.8"/><path d="M10.7 5.5h2.6M11.4 18.3h1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        <div><strong>PHONE SHOP</strong><span>TYCOON <i>•</i> FIRST PERSON</span></div>
+      </div>
+      <div class="header-right">
+        <div class="stat-group">
+          <div id="money-pill" class="stat"><span class="stat-icon money-icon">₹</span><div><small>BALANCE</small><strong id="money-display">5,000</strong></div></div>
+          <div class="stat"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 9h14l-1 10H6L5 9ZM9 9V7a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><small>SOLD</small><strong id="stat-sold">0</strong></div></div>
+          <div class="stat"><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h16v11H4zM7 8V5h10v3M9 12h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><small>CARRY</small><strong id="carry-display">0/4</strong></div></div>
+        </div>
+        <button id="btn-sound" class="icon-button" title="Toggle sound" aria-label="Toggle sound"><svg id="icon-sound-on" viewBox="0 0 24 24" fill="none"><path d="m4 10 4-3 4-3v16l-4-3-4-2v-5ZM16 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><svg id="icon-sound-off" class="hidden" viewBox="0 0 24 24" fill="none"><path d="m4 10 4-3 4-3v16l-4-3-4-2v-5ZM16 9l5 6m0-6-5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="btn-fullscreen" class="icon-button fullscreen-button" title="Fullscreen &amp; landscape" aria-label="Enter fullscreen and landscape"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="btn-help" class="icon-button help-button" title="Controls and help" aria-label="Controls and help">?</button>
+      </div>
+    </header>
+
+    <aside class="objective-card" aria-live="polite">
+      <div class="objective-top"><span class="eyebrow"><span class="live-dot"></span> YOUR NEXT MOVE</span><span id="stage-badge" class="stage">STAGE 1</span></div>
+      <div class="objective-main"><p id="objective-text">Walk to the loading bay to collect your starter phone.</p><div id="objective-direction" class="objective-direction" aria-label="Direction to objective"><svg id="direction-arrow" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 7 16-7-4-7 4 7-16Z"/></svg><span id="direction-distance">—</span></div></div>
+      <div class="objective-divider"></div>
+      <div class="stock-heading"><span>DISPLAY STOCK</span><strong id="stat-shelves">0/12</strong></div>
+      <div class="stock-track"><div id="shelf-progress-bar"></div></div>
+      <div class="objective-footer"><span id="delivery-status-badge">Bay · 1 phone</span><span class="open-indicator"><i></i> STORE OPEN</span></div>
+    </aside>
+
+    <div id="world-marker" class="world-marker hidden"><span class="marker-dot"></span><span id="marker-text">LOADING BAY</span><span id="marker-distance"></span></div>
+    <div class="crosshair" aria-hidden="true"><span></span></div>
+    <div id="interaction-hint" class="interaction-hint hidden"></div>
+    <div id="hold-progress" class="hold-progress hidden">Hold to move · 0%</div>
+
+    <div id="furniture-controls" class="furniture-controls">
+      <div id="furniture-info" class="furniture-info hidden"></div>
+      <div class="furniture-buttons">
+        <button id="move-display" class="control-chip hidden" title="Hold to move the display">HOLD <kbd>F</kbd> TO MOVE DISPLAY</button>
+        <button id="furniture-grab" class="control-chip primary hidden"><kbd>E</kbd> GRAB FURNITURE</button>
+        <button id="furniture-rotate" class="control-chip hidden"><kbd>R</kbd> ROTATE</button>
+        <button id="furniture-place" class="control-chip primary hidden"><kbd>SPACE</kbd> PLACE</button>
+        <button id="furniture-cancel" class="control-chip hidden">CANCEL</button>
+      </div>
+    </div>
+
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+    <div class="bottom-left">
+      <div id="controls-legend" class="controls-legend"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE</span><span class="legend-separator"></span><span><svg viewBox="0 0 24 24" fill="none"><rect x="7" y="3" width="10" height="18" rx="5" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v5" stroke="currentColor" stroke-width="1.7"/></svg> CLICK / DRAG LOOK</span><span class="legend-separator"></span><span><kbd>ESC</kbd> CURSOR</span></div>
+      <div id="touch-legend" class="touch-legend"><span>LEFT SIDE · MOVE</span><span>RIGHT SIDE · LOOK</span></div>
+    </div>
+    <nav class="actions" aria-label="Shop menus">
+      <button id="btn-menu-staff" class="action-button secondary"><span class="action-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20v-1a7 7 0 0 1 14 0v1H5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="action-copy"><strong>Upgrades</strong><small>PLAYER & STAFF</small></span><span class="shortcut">U</span></button>
+      <button id="btn-menu-store" class="action-button supplier"><span class="action-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h2l1.6 9h9.7l2-6H7M9 19a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM17 19a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="action-copy"><strong>Supplier</strong><small>STOCK & FURNITURE</small></span><span class="shortcut">B</span></button>
+    </nav>
+
+    <div id="toast-banner" class="toast hidden" role="status"><span class="toast-icon">✓</span><span id="toast-msg">Delivery arrived</span></div>
+
+    <div id="drawer-overlay" class="drawer-overlay hidden">
+      <section id="drawer-store" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="store-title">
+        <div class="modal-header"><div><span class="modal-eyebrow">PHONE SHOP TYCOON / SUPPLIER</span><h2 id="store-title">Stock up your shop.</h2><p>Everything you need, delivered to your loading bay.</p></div><div class="modal-header-right"><div class="modal-balance"><small>YOUR BALANCE</small><strong class="modal-balance-value">₹5,000</strong></div><button id="btn-close-store" class="modal-close" aria-label="Close supplier">×</button></div></div>
+        <div class="modal-toolbar"><div class="tabs"><button id="tab-btn-phones" class="tab active">Phones</button><button id="tab-btn-furniture" class="tab">Furniture & expansion</button></div><span id="manifest-summary" class="manifest">Delivery ready</span></div>
+        <div class="modal-scroll"><div id="tab-content-phones"><div id="panel-brands" class="catalog-grid"></div></div><div id="tab-content-furniture" class="hidden"><div id="panel-store-upgrades" class="catalog-grid"></div></div></div>
+        <div class="modal-foot"><span><i></i> DELIVERIES ARRIVE AT YOUR LOADING BAY</span><span>ESC TO CLOSE</span></div>
+      </section>
+      <section id="drawer-staff" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="staff-title">
+        <div class="modal-header"><div><span class="modal-eyebrow">PHONE SHOP TYCOON / UPGRADES</span><h2 id="staff-title">A little help goes a long way.</h2><p>Grow your skills and build a team for your shop.</p></div><div class="modal-header-right"><div class="modal-balance"><small>YOUR BALANCE</small><strong class="modal-balance-value">₹5,000</strong></div><button id="btn-close-staff" class="modal-close" aria-label="Close upgrades">×</button></div></div>
+        <div class="modal-toolbar"><div class="tabs"><button id="tab-btn-player" class="tab active">Player</button><button id="tab-btn-workers" class="tab">Staff</button></div><span class="manifest">Invest in your business</span></div>
+        <div class="modal-scroll"><div id="tab-content-player"><div id="panel-player-upgrades" class="catalog-grid"></div></div><div id="tab-content-workers" class="hidden"><div id="panel-staff-upgrades" class="catalog-grid"></div></div></div>
+        <div class="modal-foot"><span><i></i> UPGRADES STAY WITH YOUR SHOP</span><span>ESC TO CLOSE</span></div>
+      </section>
+      <section id="drawer-help" class="modal help-modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <div class="modal-header"><div><span class="modal-eyebrow">WELCOME TO YOUR SHOP</span><h2 id="help-title">A quick tour.</h2><p>Everything you need to get your first sale.</p></div><button id="btn-close-help" class="modal-close" aria-label="Close help">×</button></div>
+        <div class="modal-scroll help-content">
+          <div class="help-grid"><div class="help-tile"><span class="help-number">01</span><strong>Bring in stock</strong><p>Walk to the loading bay. Phones are picked up automatically when you get close.</p></div><div class="help-tile"><span class="help-number">02</span><strong>Fill the displays</strong><p>Carry phones over to a display table. Your stock is placed automatically.</p></div><div class="help-tile"><span class="help-number">03</span><strong>Make the sale</strong><p>Customers browse, then queue up. Stand behind the counter to check them out. Collect the cash nearby.</p></div><div class="help-tile"><span class="help-number">04</span><strong>Grow your shop</strong><p>Order more phones, place furniture, unlock brands and hire a team from the menus.</p></div></div>
+          <div class="controls-sheet"><div><strong>DESKTOP</strong><p><b>W A S D</b> move &nbsp;·&nbsp; <b>Mouse</b> look (click, or drag in a preview) &nbsp;·&nbsp; <b>Esc</b> cursor</p><p><b>B / U</b> supplier / upgrades &nbsp;·&nbsp; <b>Hold F</b> move a display</p><p><b>E</b> grab &nbsp;·&nbsp; <b>R</b> rotate &nbsp;·&nbsp; <b>Space</b> place furniture</p></div><div><strong>TOUCH</strong><p>Drag on the left to move, drag on the right to look. Use the on-screen buttons for furniture.</p><p>Progress saves on this device when browser storage is available.</p></div></div>
+          <div class="graphics-settings"><div><strong>SHOP BRIGHTNESS</strong><span>Adjust the lighting to your screen.</span></div><div class="brightness-setting"><input id="brightness-control" type="range" min="55" max="105" step="1" value="72" aria-label="Shop brightness"><output id="brightness-value" for="brightness-control">72%</output></div></div>
+          <div class="help-bottom"><span>Made for a fresh perspective. Your original shop loop, now in first person.</span><button id="btn-reset" class="reset-button">Reset progress</button></div>
+        </div>
+      </section>
+    </div>
+    <div id="orientation-screen" class="orientation-screen hidden" role="dialog" aria-modal="true" aria-labelledby="orientation-title" aria-describedby="orientation-note">
+      <div class="orientation-card">
+        <div class="orientation-illustration" aria-hidden="true"><svg viewBox="0 0 90 90" fill="none"><rect x="20" y="28" width="50" height="34" rx="7" stroke="currentColor" stroke-width="3"/><path d="M25 39v12M65 40v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M28 16c7-6 17-8 26-4 7 2 12 7 15 13M70 15l1 10-10-1" stroke="#ab9cff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="orientation-eyebrow">PHONE SHOP TYCOON</span>
+        <h2 id="orientation-title">Turn your phone.</h2>
+        <p id="orientation-note">The shop is designed to play in landscape. Rotate your device for the best view and controls.</p>
+        <button id="btn-landscape" class="orientation-primary">Enter landscape fullscreen <span>↗</span></button>
+        <button id="btn-portrait-override" class="orientation-secondary">Can’t rotate? Continue anyway</button>
+      </div>
+    </div>
+    <div id="error-screen" class="error-screen hidden"><strong>Couldn’t start the 3D shop.</strong><span>Try a browser with WebGL enabled.</span></div>
+  </main>
+  <script>/*__THREE__*/</script>
+  <script>/*__GAME__*/</script>
+</body>
+</html>

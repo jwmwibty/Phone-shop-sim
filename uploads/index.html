@@ -1,0 +1,2923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Phone Shop Tycoon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1e293b;
+            font-family: 'Fredoka', 'Plus Jakarta Sans', sans-serif;
+            touch-action: none;
+        }
+        #game-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+        /* Virtual Joystick */
+        #joystick-zone {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+        }
+        #joystick-base {
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            border-radius: 9999px;
+            background: rgba(41, 37, 36, 0.45);
+            border: 3px solid rgba(255, 255, 255, 0.55);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 15;
+        }
+        #joystick-knob {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 42px;
+            height: 42px;
+            border-radius: 9999px;
+            background: #7c5dfa;
+            border: 3px solid #ffffff;
+            box-shadow: 0 4px 0 #4c32b8;
+            transform: translate(-50%, -50%);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Casual Tycoon UI Theme Styles */
+        .tycoon-pill {
+            background: rgba(43, 39, 38, 0.88);
+            border: 2px solid rgba(255, 255, 255, 0.16);
+            box-shadow: 0 4px 0 rgba(15, 14, 13, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+        }
+        .tycoon-round-btn {
+            background: #ffffff;
+            border: 2.5px solid #3f3835;
+            box-shadow: 0 4px 0 #3f3835;
+            color: #3f3835;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-round-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #3f3835;
+        }
+        .tycoon-cream-card {
+            background: #fcf4e6;
+            border: 2.5px solid #cdb8a2;
+            box-shadow: 0 4px 0 #b39b82, inset 0 2px 0 #ffffff;
+            border-radius: 16px;
+            color: #463a31;
+        }
+        .tycoon-modal-shell {
+            background: #f3e6d3;
+            border: 3.5px solid #4a3e35;
+            box-shadow: 0 10px 0 #2d251f, 0 20px 30px rgba(0, 0, 0, 0.45);
+            border-radius: 24px;
+            color: #463a31;
+        }
+        .tycoon-progress-track {
+            background: #e6d5c1;
+            border: 2px solid #bfa78e;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 3px rgba(0,0,0,0.12);
+        }
+        .tycoon-progress-fill {
+            background: linear-gradient(180deg, #57e359 0%, #2bb634 100%);
+            border-radius: 9999px;
+            box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4);
+            transition: width 0.25s ease;
+        }
+        .tycoon-progress-fill-amber {
+            background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+            border-radius: 9999px;
+            box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4);
+            transition: width 0.25s ease;
+        }
+        .tycoon-fab-purple {
+            background: linear-gradient(180deg, #8b6eff 0%, #6d4aff 100%);
+            border: 3px solid #2e1d6b;
+            box-shadow: 0 6px 0 #43289f, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+            border-radius: 18px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-fab-purple:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #43289f, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+        }
+        .tycoon-fab-blue {
+            background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+            border: 3px solid #0c4a6e;
+            box-shadow: 0 6px 0 #075985, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+            border-radius: 18px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-fab-blue:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #075985, inset 0 2px 0 rgba(255, 255, 255, 0.35);
+        }
+        .tycoon-btn-green {
+            background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+            border: 2.5px solid #14532d;
+            box-shadow: 0 4px 0 #14532d, inset 0 1.5px 0 rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-btn-green:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #14532d;
+        }
+        .tycoon-btn-amber {
+            background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%);
+            border: 2.5px solid #78350f;
+            box-shadow: 0 4px 0 #78350f, inset 0 1.5px 0 rgba(255, 255, 255, 0.45);
+            color: #451a03;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-btn-amber:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #78350f;
+        }
+        .tycoon-btn-blue {
+            background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+            border: 2.5px solid #1e3a8a;
+            box-shadow: 0 4px 0 #1e3a8a, inset 0 1.5px 0 rgba(255, 255, 255, 0.4);
+            color: #ffffff;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .tycoon-btn-blue:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #1e3a8a;
+        }
+        .tycoon-btn-disabled {
+            background: #e2d5c4;
+            border: 2.5px solid #b5a38f;
+            box-shadow: 0 3px 0 #9c8a76;
+            color: #8c7a67;
+        }
+        .tycoon-btn-complete {
+            background: #dcfce7;
+            border: 2.5px solid #22c55e;
+            color: #15803d;
+        }
+        /* Tactile Tab Switcher Styles */
+        .tycoon-tab-bar {
+            background: #decbb3;
+            border: 2.5px solid #b59e84;
+            border-radius: 16px;
+            padding: 4px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
+        }
+        .tycoon-tab-btn {
+            border-radius: 11px;
+            font-weight: 800;
+            color: #6e5c49;
+            border: 2px solid transparent;
+            transition: all 0.12s ease;
+        }
+        .tycoon-tab-btn.active {
+            background: #fffcf7;
+            color: #362c23;
+            border: 2px solid #78634d;
+            box-shadow: 0 3px 0 #78634d;
+            transform: translateY(-1px);
+        }
+        .text-outline-dark {
+            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+        }
+    </style>
+</head>
+<body class="relative w-full h-full overflow-hidden text-slate-100">
+
+    <!-- 3D WebGL Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Touch / Mouse Drag Joystick Surface -->
+    <div id="joystick-zone"></div>
+    <div id="joystick-base">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <!-- Furniture Placement & Grab Controls (Styled to match Tycoon Theme & Positioned Above Bottom-Right FABs) -->
+    <div id="furniture-controls" class="fixed bottom-24 right-4 z-30 flex flex-col gap-2 items-end pointer-events-none">
+        <div id="furniture-info" class="tycoon-cream-card px-3 py-2 text-xs font-extrabold max-w-[270px] shadow-lg" style="display:none"></div>
+        <div class="flex gap-2 pointer-events-auto">
+            <button id="furniture-grab" class="tycoon-btn-blue px-3.5 py-2.5 rounded-xl font-extrabold text-xs shadow-lg" style="display:none">Grab Furniture [E]</button>
+            <button id="furniture-rotate" class="tycoon-btn-amber px-3.5 py-2.5 rounded-xl font-extrabold text-xs shadow-lg" style="display:none">Rotate [R]</button>
+            <button id="furniture-place" class="tycoon-btn-green px-3.5 py-2.5 rounded-xl font-extrabold text-xs shadow-lg" style="display:none">Place [Space]</button>
+        </div>
+    </div>
+    <div id="hold-progress" class="tycoon-cream-card px-3 py-1.5 text-xs font-extrabold shadow-xl" style="display:none;position:absolute;z-index:35;pointer-events:none;">Hold to move: 0%</div>
+
+    <!-- TOP HUD (Styled after the Casual Tycoon Reference Image) -->
+    <header class="absolute top-0 left-0 right-0 z-20 p-2 sm:p-3.5 pointer-events-none">
+        <div class="max-w-xl mx-auto w-full flex flex-col gap-2">
+            
+            <!-- ROW 1: Utility Gear/Zoom Buttons + Resource Pills (Sold, Carry, Cash) -->
+            <div class="flex items-center justify-between gap-1.5 sm:gap-2.5 pointer-events-auto">
+                
+                <!-- Left Utility Buttons (Sound & Camera Zoom) -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="btn-sound" class="tycoon-round-btn w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center relative" title="Toggle Audio">
+                        <svg id="icon-sound-on" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+                        </svg>
+                        <svg id="icon-sound-off" class="w-5 h-5 hidden text-rose-500" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
+                        </svg>
+                    </button>
+
+                    <button id="btn-zoom" class="tycoon-round-btn w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center" title="Camera Zoom">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="7" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Center/Right Resource Pills -->
+                <div class="flex items-center justify-end gap-2 sm:gap-3 flex-1 min-w-0">
+                    
+                    <!-- Star / Sold Pill -->
+                    <div class="tycoon-pill flex items-center pl-1 pr-3 py-0.5 sm:py-1 min-w-[74px] sm:min-w-[88px] justify-between">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 -ml-1.5 rounded-full bg-amber-400 border-2 border-amber-900 shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-950" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                        </div>
+                        <span id="stat-sold" class="font-bold text-xs sm:text-sm text-white text-outline-dark mx-auto pl-1">0</span>
+                    </div>
+
+                    <!-- Cash Balance Pill -->
+                    <div id="money-pill" class="tycoon-pill flex items-center pl-1 pr-3.5 py-0.5 sm:py-1 min-w-[96px] sm:min-w-[118px] justify-between transition-transform duration-150">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 -ml-1.5 rounded-full bg-emerald-500 border-2 border-emerald-950 shadow flex items-center justify-center shrink-0">
+                            <span class="text-xs sm:text-sm font-extrabold text-white text-outline-dark">₹</span>
+                        </div>
+                        <span id="money-display" class="font-bold text-xs sm:text-base text-white text-outline-dark mx-auto pl-1">5,000</span>
+                    </div>
+
+                    <!-- Carry Capacity Pill -->
+                    <div class="tycoon-pill flex items-center pl-1 pr-3 py-0.5 sm:py-1 min-w-[78px] sm:min-w-[92px] justify-between">
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 -ml-1.5 rounded-full bg-sky-400 border-2 border-sky-950 shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-sky-950" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                            </svg>
+                        </div>
+                        <span id="carry-display" class="font-bold text-xs sm:text-sm text-white text-outline-dark mx-auto pl-1">0/4</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ROW 2: Compact Task & Shelf Stock Cards (Decluttered Top HUD) -->
+            <div class="grid grid-cols-3 gap-1.5 sm:gap-2 pointer-events-auto">
+                
+                <!-- Card 1: Current Objective + Stage & Bay Info -->
+                <div class="tycoon-cream-card col-span-2 px-2.5 py-1.5 flex flex-col justify-between gap-1">
+                    <div class="flex items-center justify-between gap-1">
+                        <span id="stage-badge" class="text-[10px] uppercase tracking-wider font-extrabold text-amber-900 bg-amber-300/70 border border-amber-500 px-1.5 py-0.2 rounded-md">
+                            Stage 1: Beginner
+                        </span>
+                        <span id="delivery-status-badge" class="text-[10px] font-extrabold text-emerald-800 bg-emerald-200/80 border border-emerald-400 px-1.5 py-0.2 rounded-md whitespace-nowrap">
+                            Bay: 1
+                        </span>
+                    </div>
+                    <p id="objective-text" class="text-[11px] sm:text-xs font-bold text-stone-800 leading-tight line-clamp-1">
+                        Walk to the Loading Bay to pick up your starter phone.
+                    </p>
+                </div>
+
+                <!-- Card 2: Shelf Stock Progress Card -->
+                <div class="tycoon-cream-card col-span-1 px-2.5 py-1.5 flex flex-col justify-between gap-1">
+                    <div class="text-[10px] sm:text-[11px] font-extrabold text-stone-800 text-center leading-tight">
+                        Shelf Stock
+                    </div>
+                    <div class="tycoon-progress-track h-4 sm:h-5 w-full flex items-center justify-center">
+                        <div id="shelf-progress-bar" class="tycoon-progress-fill absolute left-0 top-0 bottom-0" style="width: 0%"></div>
+                        <strong id="stat-shelves" class="relative z-10 text-[10px] sm:text-[11px] font-extrabold text-stone-900">0/8</strong>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MODAL 1: SHOP (2 TABS: PHONES & FURNITURE) -->
+            <div id="drawer-store" class="hidden pointer-events-auto tycoon-modal-shell p-3 sm:p-4 max-h-[68vh] flex flex-col mt-1">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-[#d8c4ab] shrink-0">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-600 border-2 border-purple-950 shadow flex items-center justify-center text-white shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-sm sm:text-base font-extrabold uppercase tracking-wide text-stone-800 leading-none">Store Shop</h2>
+                            <span id="manifest-summary" class="text-[10px] font-extrabold text-amber-900">Instant Dispatch Ready</span>
+                        </div>
+                    </div>
+                    <button id="btn-close-store" class="tycoon-round-btn w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 2-Tab Switcher: Phones vs Furniture -->
+                <div class="tycoon-tab-bar grid grid-cols-2 gap-1.5 my-2.5 shrink-0">
+                    <button id="tab-btn-phones" class="tycoon-tab-btn active py-1.5 px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <rect x="7" y="2" width="10" height="20" rx="2" ry="2" />
+                            <line x1="12" y1="18" x2="12.01" y2="18" />
+                        </svg>
+                        <span>Phones</span>
+                    </button>
+                    <button id="tab-btn-furniture" class="tycoon-tab-btn py-1.5 px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                        <span>Furniture</span>
+                    </button>
+                </div>
+
+                <!-- Scrollable Tab Content Area -->
+                <div class="overflow-y-auto no-scrollbar flex-1 pr-0.5">
+                    <!-- Tab 1 Content: Phones -->
+                    <div id="tab-content-phones">
+                        <div id="panel-brands" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pb-1"></div>
+                    </div>
+
+                    <!-- Tab 2 Content: Furniture & Store Expansion -->
+                    <div id="tab-content-furniture" class="hidden">
+                        <div id="panel-store-upgrades" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pb-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL 2: UPGRADES (2 TABS: PLAYER & WORKERS) -->
+            <div id="drawer-staff" class="hidden pointer-events-auto tycoon-modal-shell p-3 sm:p-4 max-h-[68vh] flex flex-col mt-1">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between gap-2 pb-2.5 border-b-2 border-[#d8c4ab] shrink-0">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-500 border-2 border-sky-950 shadow flex items-center justify-center text-white shrink-0">
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-sm sm:text-base font-extrabold uppercase tracking-wide text-stone-800 leading-none">Upgrades</h2>
+                            <p class="text-[10px] font-bold text-stone-600 mt-0.5">Improve your skills or train your staff</p>
+                        </div>
+                    </div>
+                    <button id="btn-close-staff" class="tycoon-round-btn w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 2-Tab Switcher: Player vs Workers -->
+                <div class="tycoon-tab-bar grid grid-cols-2 gap-1.5 my-2.5 shrink-0">
+                    <button id="tab-btn-player" class="tycoon-tab-btn active py-1.5 px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Player</span>
+                    </button>
+                    <button id="tab-btn-workers" class="tycoon-tab-btn py-1.5 px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Workers</span>
+                    </button>
+                </div>
+
+                <!-- Scrollable Tab Content Area -->
+                <div class="overflow-y-auto no-scrollbar flex-1 pr-0.5">
+                    <!-- Tab 1 Content: Player Upgrades -->
+                    <div id="tab-content-player">
+                        <div id="panel-player-upgrades" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pb-1"></div>
+                    </div>
+
+                    <!-- Tab 2 Content: Workers Hire & Training -->
+                    <div id="tab-content-workers" class="hidden">
+                        <div id="panel-staff-upgrades" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pb-1"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- BOTTOM-RIGHT CHUNKY TACTILE ACTION BUTTONS (Styled like the Purple Hammer Button in Reference Image) -->
+    <div class="fixed bottom-4 right-4 z-20 flex items-center gap-3 pointer-events-auto">
+        
+        <!-- Player & Staff Upgrades Button -->
+        <button id="btn-menu-staff" class="tycoon-fab-blue w-16 h-16 sm:w-20 sm:h-20 flex flex-col items-center justify-center gap-0.5 text-white relative">
+            <svg class="w-7 h-7 sm:w-8 sm:h-8 drop-shadow" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-tight text-outline-dark leading-none">Upgrades</span>
+        </button>
+
+        <!-- Store & Restock Button (Chunky Purple Squircle like Reference Image) -->
+        <button id="btn-menu-store" class="tycoon-fab-purple w-16 h-16 sm:w-20 sm:h-20 flex flex-col items-center justify-center gap-0.5 text-white relative">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-stone-900 absolute -top-1 -right-1 shadow" id="dot-store-menu"></span>
+            <svg class="w-7 h-7 sm:w-8 sm:h-8 drop-shadow" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+            </svg>
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-tight text-outline-dark leading-none">Shop</span>
+        </button>
+
+    </div>
+
+    <!-- CLEAN NOTIFICATION BANNER -->
+    <div id="toast-banner" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none opacity-0 transition-all duration-200 transform translate-y-2">
+        <div class="tycoon-cream-card px-4 py-2 shadow-xl flex items-center gap-2 text-xs sm:text-sm font-extrabold tracking-wide text-stone-800">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-emerald-900"></span>
+            <span id="toast-msg">Delivery arrived</span>
+        </div>
+    </div>
+
+    <!-- GAME ENGINE SCRIPT -->
+    <script type="module">
+        import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.12.0/rapier.es.js';
+
+        /**********************************************************************
+         * 1. WEB AUDIO SYNTHESIZER
+         **********************************************************************/
+        class SoundFX {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playTone(freq = 440, duration = 0.08, type = 'sine', gainVal = 0.1, slideFreq = null) {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    if (slideFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                    }
+                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+            pickup(stackIndex = 0) {
+                this.playTone(320 + stackIndex * 60, 0.07, 'triangle', 0.12, 460 + stackIndex * 60);
+            }
+            stockShelf() {
+                this.playTone(500, 0.08, 'sine', 0.12, 720);
+            }
+            cashRegister() {
+                this.playTone(880, 0.06, 'triangle', 0.12);
+                setTimeout(() => this.playTone(1174, 0.12, 'triangle', 0.12), 60);
+            }
+            collectMoney(combo = 0) {
+                const pitch = Math.min(1480, 600 + combo * 45);
+                this.playTone(pitch, 0.06, 'sine', 0.1, pitch * 1.15);
+            }
+            unlock() {
+                [440, 554, 659, 880].forEach((f, idx) => {
+                    setTimeout(() => this.playTone(f, 0.12, 'triangle', 0.12), idx * 65);
+                });
+            }
+            truckHorn() {
+                this.playTone(220, 0.1, 'sawtooth', 0.06);
+                setTimeout(() => this.playTone(280, 0.15, 'sawtooth', 0.07), 100);
+            }
+        }
+        const sfx = new SoundFX();
+
+        /**********************************************************************
+         * 2. FICTIONAL PHONE BRANDS & UPGRADES DATA
+         **********************************************************************/
+        const PHONE_BRANDS = [
+            {
+                id: 'kokia',
+                name: 'Kokia',
+                model: '3310 Brick',
+                inspiration: 'Nokia',
+                color: 0x1e3a8a,
+                accent: 0x93c5fd,
+                hex: '#2563eb',
+                unlockCost: 0,
+                unlocked: true,
+                boxPrice: 1200,
+                boxCount: 3,
+                sellPrice: 950,
+                tier: 'Tier 1'
+            },
+            {
+                id: 'siaomi',
+                name: 'Siaomi',
+                model: 'Note Pro',
+                inspiration: 'Xiaomi',
+                color: 0xea580c,
+                accent: 0xfed7aa,
+                hex: '#ea580c',
+                unlockCost: 2000,
+                unlocked: false,
+                boxPrice: 2100,
+                boxCount: 3,
+                sellPrice: 1650,
+                tier: 'Tier 2'
+            },
+            {
+                id: 'hansung',
+                name: 'Hansung',
+                model: 'S-Ultra',
+                inspiration: 'Samsung',
+                color: 0x0284c7,
+                accent: 0xe0f2fe,
+                hex: '#0284c7',
+                unlockCost: 4500,
+                unlocked: false,
+                boxPrice: 3600,
+                boxCount: 3,
+                sellPrice: 2800,
+                tier: 'Tier 3'
+            },
+            {
+                id: 'everything',
+                name: 'Everything',
+                model: 'Phone (1)',
+                inspiration: 'Nothing',
+                color: 0x18181b,
+                accent: 0xffffff,
+                hex: '#52525b',
+                unlockCost: 9000,
+                unlocked: false,
+                boxPrice: 6000,
+                boxCount: 3,
+                sellPrice: 4600,
+                tier: 'Tier 4'
+            },
+            {
+                id: 'ipear',
+                name: 'I Pear',
+                model: '18 Pro Max',
+                inspiration: 'Apple',
+                color: 0xd97706,
+                accent: 0xfef3c7,
+                hex: '#d97706',
+                unlockCost: 18000,
+                unlocked: false,
+                boxPrice: 10500,
+                boxCount: 3,
+                sellPrice: 8200,
+                tier: 'Tier 5'
+            }
+        ];
+
+        // Store Expansion & Display Shelf Upgrades
+        const STORE_UPGRADES = [
+            {
+                id: 'expand_shop',
+                name: 'Store Expansion',
+                desc: 'Expand floor space & double customer arrival rate',
+                cost: 15000,
+                purchased: false,
+                tag: 'Expansion'
+            }
+        ];
+
+        // Multi-Level Player & Staff Upgrades
+        const LEVEL_UPGRADES = [
+            {
+                id: 'player_carry',
+                category: 'player',
+                name: 'Player Carry Limit',
+                desc: 'Increase max phones you can hold at once (+2 per level)',
+                level: 1,
+                maxLevel: 6,
+                baseCost: 1800,
+                costMult: 1.65,
+                getStatText: (lvl) => `Cap: ${4 + (lvl - 1) * 2} phones`
+            },
+            {
+                id: 'player_speed',
+                category: 'player',
+                name: 'Player Move Speed',
+                desc: 'Walk faster around the store (+10% speed per level)',
+                level: 1,
+                maxLevel: 5,
+                baseCost: 1500,
+                costMult: 1.65,
+                getStatText: (lvl) => `Speed: ${Math.round((1 + (lvl - 1) * 0.1) * 100)}%`
+            },
+            {
+                id: 'hire_stocker',
+                category: 'staff',
+                name: 'Hire Restocker',
+                desc: 'Automatically carries phones from the Loading Bay to shelves',
+                level: 0,
+                maxLevel: 1,
+                baseCost: 7500,
+                costMult: 1,
+                getStatText: (lvl) => lvl > 0 ? 'Active on Floor' : 'Not Hired'
+            },
+            {
+                id: 'stocker_carry',
+                category: 'staff',
+                requires: 'hire_stocker',
+                name: 'Restocker Carry Limit',
+                desc: 'Increase max phones your Restocker carries per trip (+2/lvl)',
+                level: 1,
+                maxLevel: 5,
+                baseCost: 2600,
+                costMult: 1.6,
+                getStatText: (lvl) => `Cap: ${3 + (lvl - 1) * 2} phones`
+            },
+            {
+                id: 'stocker_speed',
+                category: 'staff',
+                requires: 'hire_stocker',
+                name: 'Restocker Speed',
+                desc: 'Increase Restocker walking and stocking speed (+15%/lvl)',
+                level: 1,
+                maxLevel: 5,
+                baseCost: 2400,
+                costMult: 1.6,
+                getStatText: (lvl) => `Speed: ${Math.round((1 + (lvl - 1) * 0.15) * 100)}%`
+            },
+            {
+                id: 'hire_cashier',
+                category: 'staff',
+                name: 'Hire Cashier',
+                desc: 'Automatically rings up customers at the Checkout Counter',
+                level: 0,
+                maxLevel: 1,
+                baseCost: 5500,
+                costMult: 1,
+                getStatText: (lvl) => lvl > 0 ? 'Active at Desk' : 'Not Hired'
+            },
+            {
+                id: 'cashier_speed',
+                category: 'staff',
+                requires: 'hire_cashier',
+                name: 'Cashier Checkout Speed',
+                desc: 'Ring up waiting customers much faster (+25% speed/lvl)',
+                level: 1,
+                maxLevel: 5,
+                baseCost: 2200,
+                costMult: 1.6,
+                getStatText: (lvl) => `Rate: ${Math.round((1 + (lvl - 1) * 0.25) * 100)}%`
+            }
+        ];
+
+        function getUpgradeCost(u) {
+            return Math.round((u.baseCost * Math.pow(u.costMult, Math.max(0, u.level - (u.maxLevel === 1 ? 0 : 1)))) / 50) * 50;
+        }
+
+        /**********************************************************************
+         * 3. GAME STATE
+         **********************************************************************/
+        const BASE_PLAYER_SPEED = 6.08;
+        const BASE_STOCKER_SPEED = 4.6;
+
+        const state = {
+            money: 5000,
+            totalSold: 0,
+            totalRevenue: 0,
+            maxCarry: 4,
+            playerSpeed: BASE_PLAYER_SPEED,
+            stockerMaxCarry: 3,
+            stockerSpeed: BASE_STOCKER_SPEED,
+            checkoutSpeedMult: 1.0,
+            shopExpanded: false,
+            stageIndex: 0,
+            stages: [
+                { name: 'Stage 1: Beginner', minRev: 0 },
+                { name: 'Stage 2: Growing', minRev: 3000 },
+                { name: 'Stage 3: Established', minRev: 12000 },
+                { name: 'Stage 4: Advanced', minRev: 30000 },
+                { name: 'Stage 5: Empire', minRev: 65000 }
+            ],
+            pendingOrders: [],
+            activeDrawer: null,
+            shopTab: 'phones',
+            upgradeTab: 'player',
+            zoomIndex: 0,
+            zoomLevels: [13.2, 16.0, 10.5]
+        };
+
+        /**********************************************************************
+         * 4. HIGH-PERFORMANCE THREE.JS SCENE & SHARED MATERIALS
+         **********************************************************************/
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            powerPreference: 'high-performance',
+            stencil: false
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowMap;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xcbded8);
+
+        let frustumSize = state.zoomLevels[0];
+        const aspect = window.innerWidth / window.innerHeight;
+        const camera = new THREE.OrthographicCamera(
+            -frustumSize * aspect,
+            frustumSize * aspect,
+            frustumSize,
+            -frustumSize,
+            -40,
+            120
+        );
+        const ISO_OFFSET = new THREE.Vector3(18, 22, 18);
+        camera.position.copy(ISO_OFFSET);
+        camera.lookAt(0, 0, 0);
+
+        const ambientLight = new THREE.AmbientLight(0xf8fafc, 0.58);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffbeb, 0.62);
+        dirLight.position.set(14, 24, 10);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 2;
+        dirLight.shadow.camera.far = 55;
+        const d = 16;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.001;
+        scene.add(dirLight);
+
+        // A complete day lasts two real-time minutes. Lighting changes gradually
+        // without changing game speed, spawning, or navigation.
+        const DAY_LENGTH = 120;
+        let timeOfDay = 0;
+        const daySky = new THREE.Color(0xc3dcd7), nightSky = new THREE.Color(0x1d2948);
+        const dayAmbient = new THREE.Color(0xfff2df), nightAmbient = new THREE.Color(0x839ac8);
+        const daySun = new THREE.Color(0xffedcf), nightMoon = new THREE.Color(0x9cb6e8);
+        const shopLights = [];
+        function updateDayNight(dt) {
+            timeOfDay = (timeOfDay + dt) % DAY_LENGTH;
+            const sunHeight = Math.cos(timeOfDay / DAY_LENGTH * Math.PI * 2);
+            // Smooth twilight around the horizon, rather than a sudden switch.
+            const daylight = THREE.MathUtils.smoothstep(sunHeight, -0.28, 0.28);
+            scene.background.copy(nightSky).lerp(daySky, daylight);
+            ambientLight.color.copy(nightAmbient).lerp(dayAmbient, daylight);
+            ambientLight.intensity = 0.38 + daylight * 0.20;
+            dirLight.color.copy(nightMoon).lerp(daySun, daylight);
+            dirLight.intensity = 0.24 + daylight * 0.38;
+            shopLights.forEach(light => { light.intensity = (1 - daylight) * 0.65; });
+        }
+
+        const sharedGeos = {
+            box: new THREE.BoxGeometry(1, 1, 1),
+            cyl: new THREE.CylinderGeometry(1, 1, 1, 10),
+            sphere: new THREE.SphereGeometry(1, 12, 10),
+            plane: new THREE.PlaneGeometry(1, 1)
+        };
+
+        const matCache = new Map();
+        function getMat(colorHex) {
+            if (!matCache.has(colorHex)) {
+                matCache.set(colorHex, new THREE.MeshLambertMaterial({ color: colorHex }));
+            }
+            return matCache.get(colorHex);
+        }
+
+        // Rounded profile in plan: low-segment corners preserve a crisp, stylized silhouette.
+        function roundedSlab(w, h, d, radius, color) {
+            const r = Math.min(radius, w / 2, d / 2), shape = new THREE.Shape();
+            shape.moveTo(-w / 2 + r, -d / 2); shape.lineTo(w / 2 - r, -d / 2); shape.quadraticCurveTo(w / 2, -d / 2, w / 2, -d / 2 + r);
+            shape.lineTo(w / 2, d / 2 - r); shape.quadraticCurveTo(w / 2, d / 2, w / 2 - r, d / 2);
+            shape.lineTo(-w / 2 + r, d / 2); shape.quadraticCurveTo(-w / 2, d / 2, -w / 2, d / 2 - r);
+            shape.lineTo(-w / 2, -d / 2 + r); shape.quadraticCurveTo(-w / 2, -d / 2, -w / 2 + r, -d / 2);
+            const geo = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 2 });
+            geo.rotateX(-Math.PI / 2); geo.translate(0, -h / 2, 0);
+            return new THREE.Mesh(geo, getMat(color));
+        }
+        const shadowBlobMat = new THREE.MeshBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.25, depthWrite: false });
+
+        function createFloorSignMesh(title, subtitle, bgHex = '#0f172a', borderHex = '#3b82f6', width = 2.8, height = 1.1) {
+            const c = document.createElement('canvas');
+            c.width = 256;
+            c.height = 96;
+            const ctx = c.getContext('2d');
+
+            ctx.fillStyle = bgHex;
+            ctx.fillRect(0, 0, 256, 96);
+            ctx.strokeStyle = borderHex;
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, 248, 88);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, 128, subtitle ? 44 : 56);
+
+            if (subtitle) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = '700 20px "Plus Jakarta Sans", sans-serif';
+                ctx.fillText(subtitle, 128, 74);
+            }
+
+            const tex = new THREE.CanvasTexture(c);
+            tex.minFilter = THREE.LinearFilter;
+            const mat = new THREE.MeshBasicMaterial({ map: tex });
+            const mesh = new THREE.Mesh(sharedGeos.plane, mat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.scale.set(width, height, 1);
+            return { mesh, canvas: c, ctx, tex };
+        }
+
+        /**********************************************************************
+         * 5. RAPIER3D WASM INITIALIZATION
+         **********************************************************************/
+        let rapierWorld = null;
+        let rapierReady = false;
+        const dynamicCrates = [];
+
+        async function initRapierPhysics() {
+            try {
+                await RAPIER.init();
+                rapierWorld = new RAPIER.World({ x: 0.0, y: -24.0, z: 0.0 });
+
+                const groundDesc = RAPIER.ColliderDesc.cuboid(40.0, 0.5, 40.0).setTranslation(0, -0.5, 0);
+                rapierWorld.createCollider(groundDesc);
+
+                const palletDesc = RAPIER.ColliderDesc.cuboid(2.2, 0.15, 2.2)
+                    .setTranslation(-6.8, 0.15, 4.2)
+                    .setRestitution(0.2);
+                rapierWorld.createCollider(palletDesc);
+
+                rapierReady = true;
+            } catch (err) {
+                console.warn('Rapier fallback mode:', err);
+            }
+        }
+
+        /**********************************************************************
+         * 6. LOW-POLY PROCEDURAL MESH BUILDERS
+         **********************************************************************/
+        function createPhoneItemMesh(brand) {
+            const group = new THREE.Group();
+            const base = roundedSlab(0.56, 0.15, 0.84, 0.075, brand.color); group.add(base);
+            const screen = roundedSlab(0.46, 0.014, 0.72, 0.045, 0x152133); screen.position.y = 0.082; group.add(screen);
+            const display = roundedSlab(0.40, 0.006, 0.64, 0.035, brand.accent); display.position.y = 0.092; group.add(display);
+            const cameraDot = new THREE.Mesh(sharedGeos.cyl, getMat(0x172033)); cameraDot.scale.set(0.025, 0.008, 0.025); cameraDot.position.set(0, 0.099, -0.29); group.add(cameraDot);
+            group.userData.brand = brand;
+            return group;
+        }
+
+        const cashNoteMat = getMat(0x22c55e);
+        const cashStrapMat = getMat(0xfef08a);
+        function createCashBundleMesh() {
+            const group = new THREE.Group();
+            const note = new THREE.Mesh(sharedGeos.box, cashNoteMat);
+            note.scale.set(0.50, 0.13, 0.28);
+            group.add(note);
+
+            const strap = new THREE.Mesh(sharedGeos.box, cashStrapMat);
+            strap.scale.set(0.12, 0.14, 0.30);
+            group.add(strap);
+            return group;
+        }
+
+        // Smooth, hand-shaped surfaces shared across characters. A lathed profile
+        // gives each body part a continuous silhouette instead of stacked primitives.
+        function characterSurface(profile) {
+            return new THREE.LatheGeometry(profile.map(p => new THREE.Vector2(p[0], p[1])), 24);
+        }
+        const characterGeos = {
+            torso: characterSurface([[0,0],[.23,.01],[.31,.09],[.33,.25],[.37,.52],[.34,.69],[.25,.77],[.12,.79],[0,.79]]),
+            arm: characterSurface([[0,-.59],[.09,-.58],[.125,-.51],[.13,-.35],[.155,-.17],[.17,-.04],[.14,.07],[0,.10]]),
+            leg: characterSurface([[0,-.57],[.12,-.56],[.15,-.49],[.15,-.30],[.17,-.08],[.15,.07],[0,.10]]),
+            head: new THREE.SphereGeometry(1, 24, 18),
+            hair: new THREE.SphereGeometry(1, 24, 14, 0, Math.PI * 2, 0, Math.PI * .51)
+        };
+        function createStickman(colorHex, options = {}) {
+            const root = new THREE.Group(), bodyRig = new THREE.Group(); root.add(bodyRig);
+            // Keep navigation and carried objects in world units; only the visible person is scaled.
+            bodyRig.scale.setScalar(0.82);
+            const shadow = new THREE.Mesh(sharedGeos.plane, shadowBlobMat);
+            shadow.rotation.x = -Math.PI / 2; shadow.scale.set(0.72, 0.72, 1); shadow.position.y = 0.02; root.add(shadow);
+            const skinTones = [0xe4b899, 0xc98e6b, 0xf1c5a5, 0x98684e];
+            const skin = options.hatColor ? 0xe4b899 : skinTones[Math.floor(Math.random() * skinTones.length)];
+            const pants = 0x303c51, shoes = 0x293344, shirt = options.vestColor || colorHex;
+            function part(parent, geo, color, x, y, z, sx, sy, sz) {
+                const mesh = new THREE.Mesh(geo, getMat(color)); mesh.position.set(x,y,z);
+                mesh.scale.set(sx,sy,sz); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+            }
+            part(bodyRig, characterGeos.torso, shirt, 0, .76, 0, 1, 1, .78);
+            // Collar, neck and a smoothly rounded head with a simple expressive face.
+            part(bodyRig, characterGeos.head, skin, 0, 1.53, 0, .12, .15, .12);
+            part(bodyRig, characterGeos.head, skin, 0, 1.79, 0, .29, .33, .27);
+            part(bodyRig, characterGeos.head, skin, -.29, 1.78, 0, .055, .075, .055);
+            part(bodyRig, characterGeos.head, skin, .29, 1.78, 0, .055, .075, .055);
+            for (const x of [-.105, .105]) {
+                part(bodyRig, characterGeos.head, 0x303344, x, 1.81, .257, .025, .034, .012);
+                part(bodyRig, characterGeos.head, 0xffffff, x-.007, 1.823, .268, .007, .009, .005);
+            }
+            part(bodyRig, characterGeos.head, 0xb66e60, 0, 1.675, .258, .055, .014, .012);
+            if (options.hatColor) {
+                part(bodyRig, characterGeos.hair, options.hatColor, 0, 2.00, 0, .31, .19, .29);
+                const brim = roundedSlab(.48, .045, .25, .08, options.hatColor); brim.position.set(0, 2.01, .18); bodyRig.add(brim);
+            } else {
+                part(bodyRig, characterGeos.hair, 0x41342f, 0, 1.94, -.02, .305, .22, .28);
+            }
+            function limb(x, y, isArm) {
+                const pivot = new THREE.Group(); pivot.position.set(x,y,0); bodyRig.add(pivot);
+                if (isArm) {
+                    part(pivot, characterGeos.arm, shirt, 0, 0, 0, 1, 1, .9);
+                    part(pivot, characterGeos.head, skin, 0, -.56, .01, .105, .13, .10);
+                } else {
+                    part(pivot, characterGeos.leg, pants, 0, 0, 0, 1, 1, .92);
+                    part(pivot, characterGeos.head, shoes, 0, -.56, .07, .15, .095, .21);
+                }
+                return pivot;
+            }
+            const leftArm = limb(-.34, 1.42, true), rightArm = limb(.34, 1.42, true);
+            const leftLeg = limb(-.17, .71, false), rightLeg = limb(.17, .71, false);
+            const carryAnchor = new THREE.Group(); carryAnchor.position.set(0, .87, .48); root.add(carryAnchor);
+            let statusBadge = null;
+            if (options.hasStatusBadge) {
+                statusBadge = new THREE.Mesh(sharedGeos.box, getMat(0x38bdf8));
+                statusBadge.scale.set(.23,.23,.23); statusBadge.position.set(0,2.05,0);
+                statusBadge.rotation.y = Math.PI / 4; statusBadge.visible = false; root.add(statusBadge);
+            }
+            root.userData = { bodyRig, leftLeg, rightLeg, leftArm, rightArm, carryAnchor, statusBadge, walkCycle: Math.random() * 10 };
+            return root;
+        }
+
+        function animateStickman(stickman, isMoving, isCarrying, dt) {
+            const u = stickman.userData;
+            if (isMoving) {
+                u.walkCycle += dt * 13;
+                const swing = Math.sin(u.walkCycle) * 0.55;
+                u.leftLeg.rotation.x = swing;
+                u.rightLeg.rotation.x = -swing;
+                u.bodyRig.position.y = Math.abs(Math.cos(u.walkCycle)) * 0.045;
+                u.bodyRig.rotation.z = Math.sin(u.walkCycle) * 0.035;
+                if (isCarrying) {
+                    u.leftArm.rotation.x = -1.15;
+                    u.rightArm.rotation.x = -1.15;
+                } else {
+                    u.leftArm.rotation.x = -swing * 0.65;
+                    u.rightArm.rotation.x = swing * 0.65;
+                }
+            } else {
+                u.leftLeg.rotation.x *= 0.8;
+                u.rightLeg.rotation.x *= 0.8;
+                u.bodyRig.position.y *= 0.8;
+                u.bodyRig.rotation.z *= 0.8;
+                if (isCarrying) {
+                    u.leftArm.rotation.x = -1.15;
+                    u.rightArm.rotation.x = -1.15;
+                } else {
+                    u.leftArm.rotation.x *= 0.8;
+                    u.rightArm.rotation.x *= 0.8;
+                }
+            }
+        }
+
+        /**********************************************************************
+         * 7. SHOP ENVIRONMENT
+         **********************************************************************/
+        const worldGroup = new THREE.Group();
+        scene.add(worldGroup);
+
+        const street = new THREE.Mesh(sharedGeos.box, getMat(0x9bc78e));
+        street.scale.set(44, 0.3, 44);
+        street.position.set(0, -0.2, 0);
+        street.receiveShadow = true;
+        worldGroup.add(street);
+
+        const road = new THREE.Mesh(sharedGeos.box, getMat(0x657179));
+        road.scale.set(44, 0.32, 5.6);
+        road.position.set(0, -0.18, 10.6);
+        worldGroup.add(road);
+
+        const dashInst = new THREE.InstancedMesh(sharedGeos.box, getMat(0xf4e6c9), 9);
+        const dummyMat = new THREE.Matrix4();
+        for (let i = 0; i < 9; i++) {
+            dummyMat.makeScale(1.8, 0.04, 0.2);
+            dummyMat.setPosition(-16 + i * 4, 0.01, 10.6);
+            dashInst.setMatrixAt(i, dummyMat);
+        }
+        worldGroup.add(dashInst);
+
+        const shopFloor = new THREE.Mesh(sharedGeos.box, getMat(0xfff2df));
+        shopFloor.scale.set(14, 0.16, 12);
+        shopFloor.position.set(0.5, 0.0, -0.5);
+        shopFloor.receiveShadow = true;
+        worldGroup.add(shopFloor);
+
+        let tileInstMesh = null;
+        function buildFloorTiles(widthSpan = 12) {
+            if (tileInstMesh) worldGroup.remove(tileInstMesh);
+            // Subtle, correctly sized checker tiles instead of isolated squares.
+            const coords = [];
+            const columns = widthSpan === 12 ? 14 : 17;
+            for (let x = 0; x < columns; x++) {
+                for (let z = 0; z < 12; z++) {
+                    if ((x + z) % 2 === 0) coords.push([-6 + x, -6 + z]);
+                }
+            }
+            tileInstMesh = new THREE.InstancedMesh(sharedGeos.box, getMat(0xf4e4d7), coords.length);
+            tileInstMesh.receiveShadow = true;
+            const m = new THREE.Matrix4();
+            coords.forEach(([x, z], idx) => {
+                m.makeScale(0.98, 0.015, 0.98);
+                m.setPosition(x, 0.09, z); tileInstMesh.setMatrixAt(idx, m);
+            });
+            tileInstMesh.instanceMatrix.needsUpdate = true;
+            worldGroup.add(tileInstMesh);
+        }
+        buildFloorTiles(12);
+
+        const backWall = new THREE.Mesh(sharedGeos.box, getMat(0xfff4e9));
+        backWall.scale.set(14.4, 3.4, 0.45);
+        backWall.position.set(0.5, 1.7, -6.5);
+        backWall.castShadow = true;
+        backWall.receiveShadow = true;
+        worldGroup.add(backWall);
+
+        const backTrim = new THREE.Mesh(sharedGeos.box, getMat(0x7459b7));
+        backTrim.scale.set(14.5, 0.3, 0.52);
+        backTrim.position.set(0.5, 3.45, -6.5);
+        worldGroup.add(backTrim);
+
+        const leftWall = new THREE.Mesh(sharedGeos.box, getMat(0xfbe9db));
+        leftWall.scale.set(0.45, 3.4, 8.5);
+        leftWall.position.set(-6.5, 1.7, -2.5);
+        leftWall.castShadow = true;
+        leftWall.receiveShadow = true;
+        worldGroup.add(leftWall);
+
+        const leftTrim = new THREE.Mesh(sharedGeos.box, getMat(0x7459b7));
+        leftTrim.scale.set(0.52, 0.3, 8.6);
+        leftTrim.position.set(-6.5, 3.45, -2.5);
+        worldGroup.add(leftTrim);
+
+        const matCarpet = new THREE.Mesh(sharedGeos.box, getMat(0x8d73c8));
+        matCarpet.scale.set(3.2, 0.04, 1.3);
+        matCarpet.position.set(1.5, 0.09, 5.4);
+        worldGroup.add(matCarpet);
+
+        // Streetscape and interior accents are decorative: they never block game navigation.
+        function decorBox(parent, x, y, z, w, h, d, color) {
+            const mesh = new THREE.Mesh(sharedGeos.box, getMat(color));
+            mesh.position.set(x, y, z); mesh.scale.set(w, h, d);
+            mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+        }
+        // Sidewalk and curb separate the road from the storefronts.
+        decorBox(worldGroup, 0, -0.015, 7.4, 44, 0.12, 2.3, 0xe4d8c5);
+        decorBox(worldGroup, 0, 0.04, 8.48, 44, 0.16, 0.18, 0xfff1db);
+        for (let x = -20; x <= 20; x += 2) decorBox(worldGroup, x, 0.052, 7.4, 0.035, 0.012, 2, 0xc4b7a5);
+        decorBox(worldGroup, 0, -0.02, 14.15, 44, 0.12, 1.5, 0xd9d2c0);
+
+        function addTree(x, z, size) {
+            const tree = new THREE.Group(); tree.position.set(x, 0, z); tree.scale.setScalar(size * 1.35);
+            decorBox(tree, 0, 0.66, 0, 0.3, 1.32, 0.3, 0x936747);
+            [[0, 1.75, 0, 0.83], [-0.46, 1.5, 0, 0.58], [0.45, 1.55, 0.08, 0.62], [0, 2.2, 0, 0.62]].forEach(([a,b,c,r], i) => {
+                const crown = new THREE.Mesh(sharedGeos.sphere, getMat(i % 2 ? 0x70b96c : 0x53a763));
+                crown.position.set(a,b,c); crown.scale.setScalar(r); crown.castShadow = true; tree.add(crown);
+            });
+            worldGroup.add(tree);
+        }
+        [[-17,7.25,0.85],[-11,7.25,0.75],[14.5,7.25,0.8],[20,7.25,0.85],[-19,15,0.9],[-12,15,0.8],[0,15,0.8],[10,15,0.9],[19,15,0.8]].forEach(t => addTree(...t));
+
+        // Small neighboring businesses; the first occupies the expansion plot.
+        function makeNeighbor(x, width, wall, accent, label) {
+            const g = new THREE.Group(); g.position.set(x, 0, -0.5);
+            // Match the main shop's open-roof cutaway rather than hiding it
+            // behind a solid, oversized neighboring block.
+            decorBox(g, 0, 0, 0, width, .16, 10.5, 0xf3e7d6);
+            decorBox(g, 0, 1.6, -5.1, width, 3.2, .3, wall);
+            decorBox(g, 0, 3.27, -5.1, width + .08, .22, .36, accent);
+            decorBox(g, -width/2 + .12, .6, -.1, .24, 1.2, 9.8, wall);
+            // A small display and a back-wall sign give each cutaway a purpose.
+            decorBox(g, 0, .58, -2.85, width * .72, 1, 1.05, accent);
+            decorBox(g, 0, 1.12, -2.85, width * .76, .12, 1.15, 0xfff1dc);
+            for (let i = 0; i < 3; i++) {
+                decorBox(g, (i-1)*width*.19, 1.28, -2.85, .35, .24, .35,
+                    label === 'FLOWERS' ? 0x7ca889 : label === 'BAKERY' ? 0xd8aa73 : 0xb77c64);
+            }
+            const sign = createFloorSignMesh(label, 'LOCAL SHOP', '#56485a', '#eac9a4', Math.min(width - .35, 3.5), .7);
+            sign.mesh.rotation.x = 0; sign.mesh.position.set(0, 2.25, -4.91); g.add(sign.mesh);
+            worldGroup.add(g); return g;
+        }
+        const expansionNeighbor = makeNeighbor(9.45, 3.5, 0xf2bd9f, 0xdc7e77, 'BAKERY');
+        makeNeighbor(15.2, 5.7, 0xc3dcd1, 0x4d968d, 'FLOWERS');
+        makeNeighbor(-15, 6, 0xeed39e, 0xd69b58, 'CAFE');
+
+        // Warm interior lamps make the shop welcoming after sunset.
+        [-4.5, 5.0].forEach(x => {
+            decorBox(worldGroup, x, 3.05, -6.12, .45, .12, .3, 0x7a658a);
+            const bulb = new THREE.Mesh(sharedGeos.sphere,
+                new THREE.MeshBasicMaterial({ color: 0xffe8b5 }));
+            bulb.position.set(x, 2.93, -5.98); bulb.scale.set(.13, .13, .13); worldGroup.add(bulb);
+            const light = new THREE.PointLight(0xffd799, 0, 9, 2);
+            light.position.set(x, 2.8, -4.9); scene.add(light); shopLights.push(light);
+        });
+        updateDayNight(0);
+
+        // A wall gallery gives the shop a warmer, more colorful identity without
+        // placing furniture in the customer's or player's paths.
+        decorBox(worldGroup, 0.5, 0.22, -6.22, 13.5, 0.2, 0.1, 0xe1bcaa);
+        decorBox(worldGroup, 0.5, 2.25, -6.22, 4.6, 1.15, 0.09, 0xe2d5f4);
+        const featureSign = createFloorSignMesh('PHONE SHOP', 'FIND YOUR NEXT FAVORITE', '#624b9b', '#f4c791', 4.1, 0.8);
+        featureSign.mesh.rotation.x = 0; featureSign.mesh.position.set(0.5, 2.3, -6.13); worldGroup.add(featureSign.mesh);
+        [-4.5, 5.4].forEach(x => {
+            decorBox(worldGroup, x, 2.0, -6.18, 1.65, 1.35, 0.1, 0xf6c9b1);
+            decorBox(worldGroup, x, 2.0, -6.09, 1.4, 1.1, 0.08, 0xfef5df);
+            decorBox(worldGroup, x, 2.0, -6.02, 0.38, 0.76, 0.07, 0x7e6ab5);
+            decorBox(worldGroup, x, 2.04, -5.97, 0.28, 0.54, 0.02, 0xa6d8da);
+        });
+
+        // Low-poly traffic runs independently in opposite lanes and wraps offscreen.
+        const traffic = [];
+        function makeCar(x, z, color, speed) {
+            const car = new THREE.Group(); car.position.set(x, 0.12, z);
+            decorBox(car, 0, 0.36, 0, 2.25, 0.48, 1.02, color);
+            decorBox(car, -0.1, 0.73, 0, 1.15, 0.45, 0.88, color);
+            decorBox(car, -0.1, 0.78, 0, 1.02, 0.28, 0.91, 0x9ad7e2);
+            [-0.7, 0.7].forEach(a => [-0.51, 0.51].forEach(b => {
+                const wheel = new THREE.Mesh(sharedGeos.cyl, getMat(0x29313d));
+                wheel.rotation.x = Math.PI / 2; wheel.position.set(a, 0.22, b); wheel.scale.set(0.23, 0.12, 0.23); car.add(wheel);
+            }));
+            decorBox(car, 1.13, 0.4, 0, 0.04, 0.15, 0.72, 0xffedb1);
+            worldGroup.add(car); traffic.push({car, speed});
+        }
+        makeCar(-14, 9.35, 0xf0a266, 3.2); makeCar(6, 9.35, 0x79bac5, 3.2);
+        makeCar(14, 11.85, 0xdf798c, -2.6); makeCar(-5, 11.85, 0xe5c15d, -2.6);
+        function updateTraffic(dt) {
+            traffic.forEach(({car, speed}) => {
+                car.position.x += speed * dt;
+                if (car.position.x > 23) car.position.x = -23;
+                if (car.position.x < -23) car.position.x = 23;
+                car.rotation.y = speed < 0 ? Math.PI : 0;
+            });
+        }
+
+        const LOADING_BAY_POS = new THREE.Vector3(-6.8, 0.08, 4.2);
+        const palletGroup = new THREE.Group();
+        palletGroup.position.copy(LOADING_BAY_POS);
+
+        const palletBase = new THREE.Mesh(sharedGeos.box, getMat(0xd97706));
+        palletBase.scale.set(3.8, 0.2, 3.8);
+        palletBase.receiveShadow = true;
+        palletGroup.add(palletBase);
+
+        const bayBorder = new THREE.Mesh(sharedGeos.box, getMat(0xfacc15));
+        bayBorder.scale.set(4.1, 0.05, 4.1);
+        bayBorder.position.y = -0.05;
+        palletGroup.add(bayBorder);
+
+        const bayDecal = createFloorSignMesh('LOADING BAY', 'PICK UP STOCK', '#0f172a', '#facc15', 3.2, 1.15);
+        bayDecal.mesh.position.set(0, 0.12, 2.55);
+        palletGroup.add(bayDecal.mesh);
+        worldGroup.add(palletGroup);
+
+        /**********************************************************************
+         * 8. CHECKOUT COUNTER & PHYSICAL CASH PILE
+         **********************************************************************/
+        const COUNTER_POS = new THREE.Vector3(-3.6, 0.08, -2.8);
+        const CASHIER_SPOT = new THREE.Vector3(-3.6, 0.08, -4.2);
+        const CASH_PILE_POS = new THREE.Vector3(-1.4, 0.08, -2.8);
+
+        const counterGroup = new THREE.Group();
+        counterGroup.position.copy(COUNTER_POS);
+
+        const deskBody = new THREE.Mesh(sharedGeos.box, getMat(0x334155));
+        deskBody.scale.set(2.8, 1.1, 1.35);
+        deskBody.position.y = 0.55;
+        deskBody.castShadow = true;
+        counterGroup.add(deskBody);
+        const frontPanel = roundedSlab(2.57, 0.73, 0.035, 0.03, 0xc4a27a); frontPanel.position.set(0, 0.55, 0.687); counterGroup.add(frontPanel);
+        for (let x = -1.15; x < 1.2; x += 0.22) {
+            const strip = new THREE.Mesh(sharedGeos.box, getMat(0x9d7f5c));
+            strip.scale.set(0.025, 0.67, 0.025);
+            strip.position.set(x, 0.55, 0.71);
+            counterGroup.add(strip);
+        }
+
+        const deskTop = roundedSlab(2.95, 0.14, 1.5, 0.12, 0xf1f2ea);
+        deskTop.position.y = 1.15;
+        counterGroup.add(deskTop);
+
+        const registerMesh = new THREE.Mesh(sharedGeos.box, getMat(0x0f172a));
+        registerMesh.scale.set(0.6, 0.42, 0.5);
+        registerMesh.position.set(-0.5, 1.4, 0);
+        counterGroup.add(registerMesh);
+        const regScreen = new THREE.Mesh(sharedGeos.box, getMat(0x67c9d7)); regScreen.scale.set(0.47, 0.23, 0.018); regScreen.position.set(-0.5, 1.45, 0.258); counterGroup.add(regScreen);
+
+        const standRingMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const standRing = new THREE.Mesh(sharedGeos.cyl, standRingMat);
+        standRing.scale.set(0.9, 0.03, 0.9);
+        standRing.position.set(0, 0.03, -1.4);
+        counterGroup.add(standRing);
+
+        const counterDecal = createFloorSignMesh('CHECKOUT', 'STAND TO SERVE', '#0f172a', '#38bdf8', 2.5, 0.9);
+        counterDecal.mesh.position.set(0, 0.03, 1.25);
+        counterGroup.add(counterDecal.mesh);
+
+        worldGroup.add(counterGroup);
+
+        const cashPad = new THREE.Mesh(sharedGeos.box, getMat(0x16a34a));
+        cashPad.scale.set(1.8, 0.05, 1.6);
+        cashPad.position.copy(CASH_PILE_POS);
+        worldGroup.add(cashPad);
+
+        const cashDecal = createFloorSignMesh('CASH PILE', '₹0', '#064e3b', '#22c55e', 1.8, 0.75);
+        cashDecal.mesh.position.set(CASH_PILE_POS.x, 0.10, CASH_PILE_POS.z + 1.25);
+        worldGroup.add(cashDecal.mesh);
+
+        let lastCashDisplayValue = 0;
+        function updateCashDecalText(amount) {
+            const rounded = Math.round(amount);
+            if (rounded === lastCashDisplayValue) return;
+            lastCashDisplayValue = rounded;
+            const { ctx, tex } = cashDecal;
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(8, 48, 240, 40);
+            ctx.fillStyle = '#4ade80';
+            ctx.font = '800 22px "Plus Jakarta Sans", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`₹${rounded.toLocaleString('en-IN')}`, 128, 76);
+            tex.needsUpdate = true;
+        }
+
+        const cashPileBundles = [];
+        function addCashToPile(amount) {
+            const bundleCount = Math.max(1, Math.min(5, Math.round(amount / 500)));
+            const valuePerBundle = amount / bundleCount;
+
+            for (let i = 0; i < bundleCount; i++) {
+                const idx = cashPileBundles.length;
+                const col = idx % 2;
+                const row = Math.floor(idx / 2) % 3;
+                const layer = Math.floor(idx / 6);
+
+                const bundleMesh = createCashBundleMesh();
+                const targetPos = new THREE.Vector3(
+                    CASH_PILE_POS.x + (col - 0.5) * 0.62,
+                    0.16 + layer * 0.15,
+                    CASH_PILE_POS.z + (row - 1) * 0.40
+                );
+
+                bundleMesh.position.copy(COUNTER_POS).add(new THREE.Vector3(0, 1.4, 0));
+                scene.add(bundleMesh);
+
+                spawnParabolicArc(bundleMesh, targetPos, 0.26 + i * 0.04);
+                cashPileBundles.push({ mesh: bundleMesh, value: valuePerBundle });
+            }
+            const sum = cashPileBundles.reduce((s, b) => s + b.value, 0);
+            updateCashDecalText(sum);
+        }
+
+        /**********************************************************************
+         * 9. DISPLAY SHELVES & FURNITURE CATALOG
+         **********************************************************************/
+        const shelves = [];
+        const FURNITURE = [
+            { id: 'compact', name: 'Compact Display', cost: 1200, width: 1.5, depth: 1.15, levels: 1, cols: 2, rows: 1, color: 0xb8895b, accent: 0x70482e },
+            { id: 'standard', name: 'Classic Display Table', cost: 2500, width: 2.5, depth: 2.05, levels: 1, cols: 3, rows: 2, color: 0xcbd5e1, accent: 0x2563eb },
+            { id: 'luxury', name: 'Luxury Showcase', cost: 5500, width: 2.45, depth: 1.2, levels: 2, cols: 3, rows: 1, color: 0x24283b, accent: 0xd4a850 },
+            { id: 'rack', name: 'Mega Storage Rack', cost: 10500, width: 3.2, depth: 2.05, levels: 2, cols: 4, rows: 2, color: 0x64748b, accent: 0x14b8a6 }
+        ];
+
+        function furnitureModel(type) {
+            const g = new THREE.Group(), slots = [];
+            const w = type.width, d = type.depth, dark = 0x263344, white = 0xf4f4ed, wood = 0xbe986a;
+            function box(wi, h, di, x, y, z, color, rounded = 0) {
+                const m = rounded ? roundedSlab(wi, h, di, rounded, color) : new THREE.Mesh(sharedGeos.box, getMat(color));
+                if (!rounded) m.scale.set(wi, h, di); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m;
+            }
+            function cylinder(radius, height, x, y, z, color) {
+                const m = new THREE.Mesh(sharedGeos.cyl, getMat(color)); m.scale.set(radius, height, radius); m.position.set(x, y, z); g.add(m);
+            }
+            box(w - 0.10, 0.12, d - 0.10, 0, 0.07, 0, dark, 0.06);
+            if (type.id === 'compact') {
+                box(w - 0.15, 0.72, d - 0.15, 0, 0.48, 0, wood, 0.07);
+                box(w - 0.28, 0.54, 0.025, 0, 0.49, d / 2 - 0.07, 0xd2ad80, 0.025);
+                box(w * 0.50, 0.025, 0.018, 0, 0.60, d / 2 - 0.05, 0x805f43, 0.01);
+                box(0.27, 0.025, 0.03, 0, 0.69, d / 2 - 0.04, 0x765339, 0.01);
+            } else if (type.id === 'standard') {
+                box(w - 0.24, 0.69, d - 0.22, 0, 0.47, 0, 0xc5a47b, 0.06);
+                box(w - 0.34, 0.48, 0.025, 0, 0.47, d / 2 - 0.10, 0xe0c6a2, 0.02);
+                for (let x = -w / 2 + 0.28; x < w / 2 - 0.2; x += 0.24) box(0.028, 0.45, 0.028, x, 0.47, d / 2 - 0.08, 0xb18d65);
+                box(w - 0.16, 0.045, d - 0.16, 0, 0.83, 0, 0x577ba5, 0.04);
+            } else {
+                box(w - 0.18, 0.32, d - 0.18, 0, 0.25, 0, type.color, 0.05);
+                for (const x of [-w / 2 + 0.08, w / 2 - 0.08]) for (const z of [-d / 2 + 0.08, d / 2 - 0.08])
+                    box(0.12, 1.94, 0.12, x, 1.07, z, type.id === 'luxury' ? 0xc6a35b : 0x35495b, 0.025);
+                if (type.id === 'luxury') {
+                    const glassMat = new THREE.MeshLambertMaterial({ color: 0xc1ecf1, transparent: true, opacity: 0.18, depthWrite: false });
+                    for (const x of [-w / 2 + 0.08, w / 2 - 0.08]) {
+                        const pane = new THREE.Mesh(sharedGeos.box, glassMat); pane.scale.set(0.025, 1.22, d - 0.18); pane.position.set(x, 1.34, 0); g.add(pane);
+                    }
+                    box(w - 0.16, 0.06, d - 0.12, 0, 1.98, 0, 0xd2ad62, 0.025);
+                } else {
+                    box(w - 0.15, 0.26, 0.08, 0, 2.08, -d / 2 + 0.09, 0x334e5a, 0.025);
+                    box(w - 0.32, 0.045, 0.015, 0, 2.09, -d / 2 + 0.14, 0x45d3bb, 0.01);
+                    for (const x of [-w / 2 + 0.18, w / 2 - 0.18]) box(0.08, 0.7, 0.10, x, 0.60, 0, 0x485d69, 0.02);
+                }
+            }
+            for (let level = 0; level < type.levels; level++) {
+                const surface = 0.96 + level * 0.78;
+                box(w, 0.12, d, 0, surface - 0.06, 0, type.id === 'standard' ? white : type.color, 0.075);
+                box(w - 0.12, 0.025, 0.025, 0, surface - 0.065, d / 2 - 0.015, type.accent, 0.012);
+                if (type.levels > 1) box(w - 0.28, 0.025, 0.035, 0, surface - 0.15, -d / 2 + 0.12, type.id === 'luxury' ? 0xffdfa0 : 0x91e6d2, 0.015);
+                for (let row = 0; row < type.rows; row++) for (let col = 0; col < type.cols; col++) {
+                    const x = (col - (type.cols - 1) / 2) * (w - 0.16) / type.cols;
+                    const z = (row - (type.rows - 1) / 2) * (d - 0.12) / type.rows;
+                    box(0.62, 0.02, 0.90, x, surface + 0.01, z, 0xe9eef0, 0.04);
+                    cylinder(0.035, 0.009, x + 0.22, surface + 0.024, z + 0.35, 0x697f89);
+                    slots.push(new THREE.Vector3(x, surface + 0.02 + 0.075, z));
+                }
+            }
+            return { group: g, slots };
+        }
+
+        function makeShelf(type, pos, rotation = 0) {
+            const model = furnitureModel(type); model.group.position.copy(pos); model.group.rotation.y = rotation;
+            worldGroup.add(model.group);
+            const shelf = { id: Math.random(), type, pos: pos.clone(), unlocked: true, group: model.group, slots: model.slots, capacity: model.slots.length, items: [], rotation };
+            shelves.push(shelf);
+            return shelf;
+        }
+        makeShelf(FURNITURE[1], new THREE.Vector3(1.2, 0.08, -1.8));
+        makeShelf(FURNITURE[1], new THREE.Vector3(1.2, 0.08, 1.8));
+
+        function getSlotWorld(shelf, index) {
+            return shelf.slots[index].clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), shelf.rotation).add(shelf.pos);
+        }
+
+        /**********************************************************************
+         * 10. WALK-ON 3D FLOOR UPGRADE PADS
+         **********************************************************************/
+        const floorPads = [];
+        function createWalkPad(id, pos, title, costStr, borderHex, onTrigger) {
+            const group = new THREE.Group();
+            group.position.copy(pos);
+
+            const decal = createFloorSignMesh(title, costStr, '#0f172a', borderHex, 2.4, 1.35);
+            decal.mesh.position.y = 0.03;
+            group.add(decal.mesh);
+
+            worldGroup.add(group);
+            floorPads.push({
+                id,
+                pos,
+                active: true,
+                group,
+                dwellTimer: 0,
+                onTrigger
+            });
+        }
+
+        createWalkPad('cashier', new THREE.Vector3(-5.2, 0.08, -4.4), 'HIRE CASHIER', '₹5,500', '#10b981', () => {
+            purchaseLevelUpgrade('hire_cashier');
+        });
+
+        /**********************************************************************
+         * 11. DELIVERY VAN & UNRESTRICTED MULTI-ITEM ORDER QUEUE
+         **********************************************************************/
+        const truckGroup = new THREE.Group();
+        truckGroup.position.set(-24, 0.1, 10.6);
+
+        const cabMesh = new THREE.Mesh(sharedGeos.box, getMat(0x2563eb));
+        cabMesh.scale.set(1.8, 1.9, 2.1);
+        cabMesh.position.set(1.7, 1.15, 0);
+        cabMesh.castShadow = true;
+        truckGroup.add(cabMesh);
+
+        const cargoBox = new THREE.Mesh(sharedGeos.box, getMat(0xf8fafc));
+        cargoBox.scale.set(3.4, 2.35, 2.25);
+        cargoBox.position.set(-0.8, 1.38, 0);
+        cargoBox.castShadow = true;
+        truckGroup.add(cargoBox);
+
+        scene.add(truckGroup);
+        let activeTruckAnim = null;
+
+        function spawnSupplyCrateAtBay(brand, count = 3, isStarterSingle = false) {
+            const itemsToSpawn = isStarterSingle ? 1 : count;
+
+            for (let i = 0; i < itemsToSpawn; i++) {
+                const phoneMesh = createPhoneItemMesh(brand);
+                const spawnX = LOADING_BAY_POS.x + (Math.random() - 0.5) * 1.5;
+                const spawnY = 2.4 + i * 0.55;
+                const spawnZ = LOADING_BAY_POS.z + (Math.random() - 0.5) * 1.5;
+                phoneMesh.position.set(spawnX, spawnY, spawnZ);
+                scene.add(phoneMesh);
+
+                let rapierBody = null;
+                if (rapierReady && rapierWorld) {
+                    const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
+                        .setTranslation(spawnX, spawnY, spawnZ)
+                        .setLinearDamping(1.8)
+                        .setAngularDamping(2.5);
+                    rapierBody = rapierWorld.createRigidBody(bodyDesc);
+                    const colDesc = RAPIER.ColliderDesc.cuboid(0.28, 0.09, 0.42)
+                        .setRestitution(0.2)
+                        .setFriction(0.85);
+                    rapierWorld.createCollider(colDesc, rapierBody);
+                }
+
+                dynamicCrates.push({
+                    mesh: phoneMesh,
+                    body: rapierBody,
+                    brand,
+                    vy: 0,
+                    targetY: 0.26 + (dynamicCrates.length % 15) * 0.16
+                });
+            }
+            updateHUD();
+        }
+
+        function dispatchTruckIfNeeded() {
+            if (activeTruckAnim || state.pendingOrders.length === 0) return;
+            sfx.truckHorn();
+            truckGroup.position.set(-24, 0.1, 10.6);
+            activeTruckAnim = { phase: 'arrive', timer: 0 };
+        }
+
+        function orderSupplierDelivery(brandId, quantity = 3) {
+            const brand = PHONE_BRANDS.find(b => b.id === brandId);
+            if (!brand) return;
+
+            if (!brand.unlocked) {
+                if (state.money < brand.unlockCost) {
+                    showToast(`Need ₹${brand.unlockCost.toLocaleString('en-IN')} to unlock ${brand.name}`);
+                    return;
+                }
+                state.money -= brand.unlockCost;
+                brand.unlocked = true;
+                sfx.unlock();
+                showToast(`Unlocked ${brand.name} (${brand.model})`);
+                renderAllMenus();
+                updateHUD();
+                return;
+            }
+
+            const unitCost = Math.round(brand.boxPrice / brand.boxCount);
+            const totalOrderCost = quantity === brand.boxCount ? brand.boxPrice : unitCost * quantity;
+
+            if (state.money < totalOrderCost) {
+                showToast(`Need ₹${totalOrderCost.toLocaleString('en-IN')} to order ${quantity}x ${brand.name}`);
+                return;
+            }
+
+            state.money -= totalOrderCost;
+
+            const existing = state.pendingOrders.find(o => o.brand.id === brand.id);
+            if (existing) {
+                existing.count += quantity;
+            } else {
+                state.pendingOrders.push({ brand, count: quantity });
+            }
+
+            if (activeTruckAnim && activeTruckAnim.phase === 'unload') {
+                while (state.pendingOrders.length > 0) {
+                    const order = state.pendingOrders.shift();
+                    spawnSupplyCrateAtBay(order.brand, order.count, false);
+                }
+                sfx.pickup(2);
+                showToast(`Added ${quantity}x ${brand.name} to current drop`);
+            } else {
+                sfx.pickup(1);
+                dispatchTruckIfNeeded();
+                const totalQueued = state.pendingOrders.reduce((sum, o) => sum + o.count, 0);
+                showToast(`Ordered ${quantity}x ${brand.name} (${totalQueued} phones in van)`);
+            }
+
+            updateHUD();
+            renderAllMenus();
+        }
+
+        /**********************************************************************
+         * 12. PLAYER, PARABOLIC ARCS & FURNITURE PLACEMENT
+         **********************************************************************/
+        const player = {
+            mesh: createStickman(0x2563eb, { hatColor: 0xfacc15 }),
+            pos: new THREE.Vector3(-1.1, 0.08, 2.2),
+            vel: new THREE.Vector3(),
+            angle: 0,
+            carryStack: [],
+            pickupCooldown: 0,
+            stockCooldown: 0
+        };
+        player.mesh.position.copy(player.pos);
+        scene.add(player.mesh);
+
+        const activeArcs = [];
+        function spawnParabolicArc(mesh, targetVec3, duration = 0.25, onComplete = null) {
+            activeArcs.push({
+                mesh,
+                start: mesh.position.clone(),
+                end: targetVec3.clone(),
+                elapsed: 0,
+                duration,
+                onComplete
+            });
+        }
+
+        // Furniture orders are independent of phone deliveries and remain in the bay until collected.
+        const furnitureParcels = [];
+        const furnitureUI = {
+            info: document.getElementById('furniture-info'),
+            grab: document.getElementById('furniture-grab'),
+            rotate: document.getElementById('furniture-rotate'),
+            place: document.getElementById('furniture-place'),
+            hold: document.getElementById('hold-progress')
+        };
+        let furnitureCarry = null, furniturePreview = null, placementRotation = 0, placementValid = false, holdFurniture = null;
+        let navRevision = 0;
+
+        function orderFurniture(type) {
+            if (state.money < type.cost) {
+                showToast(`Need ₹${type.cost.toLocaleString('en-IN')} for ${type.name}`);
+                return;
+            }
+            state.money -= type.cost;
+            const g = new THREE.Group(), box = new THREE.Mesh(sharedGeos.box, getMat(0xb77943));
+            box.scale.set(1.05, 0.7, 0.8); g.add(box);
+            const band = new THREE.Mesh(sharedGeos.box, getMat(type.accent));
+            band.scale.set(0.16, 0.72, 0.82); g.add(band);
+            g.position.set(
+                LOADING_BAY_POS.x + (Math.random() - 0.5) * 1.5,
+                4 + furnitureParcels.length * 0.2,
+                LOADING_BAY_POS.z + (Math.random() - 0.5) * 1.4
+            );
+            worldGroup.add(g);
+            furnitureParcels.push({ type, group: g, vy: 0 });
+            sfx.unlock();
+            showToast(`${type.name} dropped at the Loading Bay! Walk there and tap Grab.`);
+            updateHUD();
+            renderAllMenus();
+        }
+
+        function startFurniture(type, shelf = null) {
+            furnitureCarry = { type, shelf };
+            placementRotation = shelf ? shelf.rotation : 0;
+            const model = furnitureModel(type);
+            furniturePreview = model.group;
+            furniturePreview.traverse(o => {
+                if (o.isMesh) {
+                    o.material = new THREE.MeshBasicMaterial({ color: 0x22ee88, transparent: true, opacity: 0.4, depthWrite: false });
+                }
+            });
+            const outline = new THREE.LineSegments(
+                new THREE.EdgesGeometry(new THREE.BoxGeometry(type.width, 0.025, type.depth)),
+                new THREE.LineBasicMaterial({ color: 0x7dffad })
+            );
+            outline.position.y = 0.04;
+            furniturePreview.add(outline);
+            worldGroup.add(furniturePreview);
+            if (shelf) {
+                shelf.unlocked = false;
+                shelf.group.visible = false;
+                shelf.items.forEach(item => {
+                    item.mesh.visible = false;
+                    for (let i = activeArcs.length - 1; i >= 0; i--) {
+                        if (activeArcs[i].mesh === item.mesh) activeArcs.splice(i, 1);
+                    }
+                });
+            }
+            navRevision++;
+            updateHUD();
+            showToast('Move to position · Rotate with R · Place with Space');
+        }
+
+        function grabFurniture() {
+            if (furnitureCarry || !furnitureParcels.length || player.pos.distanceTo(LOADING_BAY_POS) > 3) return;
+            const p = furnitureParcels.shift();
+            worldGroup.remove(p.group);
+            startFurniture(p.type);
+        }
+
+        function updateFurniture(dt) {
+            for (const p of furnitureParcels) {
+                p.vy -= 18 * dt;
+                p.group.position.y = Math.max(0.65, p.group.position.y + p.vy * dt);
+            }
+            const near = player.pos.distanceTo(LOADING_BAY_POS) < 3 && furnitureParcels.length > 0 && !furnitureCarry;
+            furnitureUI.grab.style.display = near ? 'block' : 'none';
+            furnitureUI.rotate.style.display = furnitureCarry ? 'block' : 'none';
+            furnitureUI.place.style.display = furnitureCarry ? 'block' : 'none';
+
+            if (furnitureCarry) {
+                const t = furnitureCarry.type;
+                const quarter = Math.round(placementRotation / (Math.PI / 2)) % 2 !== 0;
+                const w = quarter ? t.depth : t.width, d = quarter ? t.width : t.depth;
+                const dist = 1.05 + Math.max(w, d) * 0.5;
+                const x = player.pos.x + Math.sin(player.angle) * dist;
+                const z = player.pos.z + Math.cos(player.angle) * dist;
+                furniturePreview.position.set(x, 0.08, z);
+                furniturePreview.rotation.y = placementRotation;
+
+                const maxX = state.shopExpanded ? 10.2 : 7;
+                placementValid = x - w / 2 >= -6.5 && x + w / 2 <= maxX && z - d / 2 >= -5.8 && z + d / 2 <= 5.35;
+                const overlap = (ax, az, aw, ad, bx, bz, bw, bd) => Math.abs(ax - bx) < (aw + bw) / 2 + 0.14 && Math.abs(az - bz) < (ad + bd) / 2 + 0.14;
+
+                if (
+                    overlap(x, z, w, d, COUNTER_POS.x, COUNTER_POS.z, 3.5, 1.7) ||
+                    overlap(x, z, w, d, LOADING_BAY_POS.x, LOADING_BAY_POS.z, 3.8, 3.8) ||
+                    overlap(x, z, w, d, 1.5, 5.4, 2, 1.4)
+                ) {
+                    placementValid = false;
+                }
+                for (const s of shelves) {
+                    if (s.unlocked) {
+                        const q = Math.round(s.rotation / (Math.PI / 2)) % 2 !== 0;
+                        const sw = q ? s.type.depth : s.type.width, sd = q ? s.type.width : s.type.depth;
+                        if (overlap(x, z, w, d, s.pos.x, s.pos.z, sw, sd)) placementValid = false;
+                    }
+                }
+                const actors = [player, ...customers];
+                if (stockerStaff) actors.push(stockerStaff);
+                if (cashierStaff) actors.push(cashierStaff);
+                for (const actor of actors) {
+                    if (circleHitsRect(actor.pos.x, actor.pos.z, ACTOR_RADIUS + 0.12, { x, z, w, d })) placementValid = false;
+                }
+                furniturePreview.traverse(o => {
+                    if (o.isMesh) o.material.color.setHex(placementValid ? 0x22ee88 : 0xf43f5e);
+                });
+                furnitureUI.info.style.display = 'block';
+                furnitureUI.info.textContent = `${t.name} · ${t.width.toFixed(1)} × ${t.depth.toFixed(1)} m · ${t.cols * t.rows * t.levels} slots · ${placementValid ? 'Green: Ready to place' : 'Red: Blocked / outside shop'}`;
+                furnitureUI.place.className = placementValid
+                    ? 'tycoon-btn-green px-3.5 py-2.5 rounded-xl font-extrabold text-xs shadow-lg'
+                    : 'tycoon-btn-disabled px-3.5 py-2.5 rounded-xl font-extrabold text-xs shadow-lg';
+            } else {
+                furnitureUI.info.style.display = near ? 'block' : 'none';
+                if (near) furnitureUI.info.textContent = `${furnitureParcels.length} furniture package(s) in bay. Grab to start placing.`;
+            }
+
+            if (holdFurniture) {
+                holdFurniture.elapsed += dt;
+                furnitureUI.hold.textContent = `Hold to move: ${Math.min(100, Math.floor((holdFurniture.elapsed / 2) * 100))}%`;
+                if (holdFurniture.elapsed >= 2) {
+                    const shelf = holdFurniture.shelf;
+                    cancelFurnitureHold();
+                    startFurniture(shelf.type, shelf);
+                }
+            }
+        }
+
+        function placeFurniture() {
+            if (!furnitureCarry) return;
+            if (!placementValid) {
+                showToast('Move the red blueprint into clear shop floor space');
+                return;
+            }
+            const pos = furniturePreview.position.clone(), data = furnitureCarry;
+            let shelf = data.shelf;
+            if (shelf) {
+                shelf.pos.copy(pos);
+                shelf.rotation = placementRotation;
+                shelf.group.position.copy(pos);
+                shelf.group.rotation.y = placementRotation;
+                shelf.group.visible = true;
+                shelf.unlocked = true;
+                shelf.items.forEach((item, i) => {
+                    item.mesh.visible = true;
+                    item.mesh.position.copy(getSlotWorld(shelf, i));
+                    item.mesh.rotation.set(0, shelf.rotation, 0);
+                });
+            } else {
+                shelf = makeShelf(data.type, pos, placementRotation);
+            }
+            worldGroup.remove(furniturePreview);
+            furniturePreview.traverse(o => { if (o.isMesh) o.material.dispose(); });
+            furniturePreview = null;
+            furnitureCarry = null;
+            navRevision++;
+            updateHUD();
+            showToast(`${data.type.name} placed! Hold it for 2 seconds to move it again.`);
+        }
+
+        furnitureUI.grab.onclick = grabFurniture;
+        furnitureUI.rotate.onclick = () => { if (furnitureCarry) placementRotation += Math.PI / 2; };
+        furnitureUI.place.onclick = placeFurniture;
+
+        function cancelFurnitureHold() {
+            holdFurniture = null;
+            furnitureUI.hold.style.display = 'none';
+        }
+
+        function tryFurnitureHold(e) {
+            if (furnitureCarry) return false;
+            const ray = new THREE.Raycaster();
+            const v = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+            ray.setFromCamera(v, camera);
+            const hits = ray.intersectObjects(shelves.filter(s => s.unlocked).map(s => s.group), true);
+            for (const hit of hits) {
+                const shelf = shelves.find(s => s.unlocked && s.group === hit.object.parent);
+                if (shelf && player.pos.distanceTo(shelf.pos) < 3.6) {
+                    holdFurniture = { shelf, elapsed: 0, x: e.clientX, y: e.clientY, pointer: e.pointerId };
+                    furnitureUI.hold.style.display = 'block';
+                    furnitureUI.hold.style.left = Math.min(window.innerWidth - 150, e.clientX + 12) + 'px';
+                    furnitureUI.hold.style.top = Math.max(10, e.clientY - 45) + 'px';
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**********************************************************************
+         * 13. INPUT, CUSTOMERS & STAFF
+         **********************************************************************/
+        const input = { joyVec: new THREE.Vector2(0, 0), keys: Object.create(null) };
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let activePointerId = null;
+        let joystickOrigin = { x: 0, y: 0 };
+
+        function updateJoystick(clientX, clientY) {
+            const dx = clientX - joystickOrigin.x;
+            const dy = clientY - joystickOrigin.y;
+            const distance = Math.hypot(dx, dy);
+            const radius = 42;
+            const scale = distance > radius ? radius / distance : 1;
+            const x = dx * scale;
+            const y = dy * scale;
+            input.joyVec.set(x / radius, y / radius);
+            joystickKnob.style.left = `calc(50% + ${x}px)`;
+            joystickKnob.style.top = `calc(50% + ${y}px)`;
+        }
+
+        joystickZone.addEventListener('pointerdown', (event) => {
+            if (event.target.closest('button')) return;
+            if (activePointerId !== null) return;
+            if (tryFurnitureHold(event)) { joystickZone.setPointerCapture(event.pointerId); return; }
+            activePointerId = event.pointerId;
+            joystickOrigin = { x: event.clientX, y: event.clientY };
+            joystickBase.style.left = `${event.clientX}px`;
+            joystickBase.style.top = `${event.clientY}px`;
+            joystickBase.style.display = 'block';
+            joystickKnob.style.left = '50%';
+            joystickKnob.style.top = '50%';
+            joystickZone.setPointerCapture(event.pointerId);
+            updateJoystick(event.clientX, event.clientY);
+        });
+        joystickZone.addEventListener('pointermove', (event) => {
+            if (holdFurniture && event.pointerId === holdFurniture.pointer && Math.hypot(event.clientX - holdFurniture.x, event.clientY - holdFurniture.y) > 18) cancelFurnitureHold();
+            if (event.pointerId === activePointerId) updateJoystick(event.clientX, event.clientY);
+        });
+        function releaseJoystick(event) {
+            if (holdFurniture && event.pointerId === holdFurniture.pointer) cancelFurnitureHold();
+            if (event.pointerId !== activePointerId) return;
+            activePointerId = null;
+            input.joyVec.set(0, 0);
+            joystickBase.style.display = 'none';
+        }
+        joystickZone.addEventListener('pointerup', releaseJoystick);
+        joystickZone.addEventListener('pointercancel', releaseJoystick);
+        window.addEventListener('keydown', (event) => {
+            if (!event.repeat && event.code === 'KeyE') grabFurniture();
+            if (!event.repeat && event.code === 'KeyR' && furnitureCarry) placementRotation += Math.PI / 2;
+            if (!event.repeat && event.code === 'Space' && furnitureCarry) placeFurniture();
+            input.keys[event.code] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
+        });
+        window.addEventListener('keyup', (event) => { input.keys[event.code] = false; });
+        window.addEventListener('blur', () => {
+            Object.keys(input.keys).forEach(key => { input.keys[key] = false; });
+            input.joyVec.set(0, 0);
+            activePointerId = null;
+            joystickBase.style.display = 'none';
+        });
+
+        const customers = [];
+        let customerSpawnTimer = 2.0;
+        let checkoutProgress = 0;
+        let stockerStaff = null;
+        let cashierStaff = null;
+
+        function spawnCustomer() {
+            if (customers.length >= 7) return;
+            const colors = [0xf97316, 0x8b5cf6, 0xec4899, 0x14b8a6, 0x64748b, 0xdc2626];
+            const mesh = createStickman(colors[Math.floor(Math.random() * colors.length)], { hasStatusBadge: true });
+            const startX = Math.random() < 0.5 ? -10.5 : 10.5;
+            const start = new THREE.Vector3(startX, 0.08, 7.8);
+            if (customers.some(c => c.pos.distanceTo(start) < 1.3)) return;
+            const entry = new THREE.Vector3(2.2 + (Math.random() - 0.5) * 2.0, 0.08, 4.6);
+            mesh.position.copy(start);
+            scene.add(mesh);
+            customers.push({
+                mesh, pos: start.clone(), targetPos: entry,
+                state: 'ENTERING', targetShelf: null, carriedItem: null, waitTimer: 0
+            });
+        }
+
+        function spawnStockerStaff() {
+            if (stockerStaff) return;
+            const mesh = createStickman(0x16a34a, { vestColor: 0x14532d, hatColor: 0xfacc15 });
+            const pos = new THREE.Vector3(-2.5, 0.08, 2.5);
+            mesh.position.copy(pos);
+            scene.add(mesh);
+            stockerStaff = { mesh, pos, carryStack: [], cooldown: 0, mode: 'COLLECT' };
+        }
+
+        function spawnCashierStaff() {
+            if (cashierStaff) return;
+            const mesh = createStickman(0xf59e0b, { vestColor: 0x78350f });
+            const pos = CASHIER_SPOT.clone();
+            mesh.position.copy(pos);
+            mesh.rotation.y = Math.PI;
+            scene.add(mesh);
+            cashierStaff = { mesh, pos };
+        }
+
+        /**********************************************************************
+         * 14. TACTILE TYCOON UI MANAGEMENT & UPGRADE CARDS
+         **********************************************************************/
+        function showToast(msg) {
+            const banner = document.getElementById('toast-banner');
+            document.getElementById('toast-msg').textContent = msg;
+            banner.classList.remove('opacity-0', 'translate-y-2');
+            banner.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(banner.hideTimeout);
+            banner.hideTimeout = setTimeout(() => {
+                banner.classList.remove('opacity-100', 'translate-y-0');
+                banner.classList.add('opacity-0', 'translate-y-2');
+            }, 2200);
+        }
+
+        function purchaseStoreUpgrade(upgradeId) {
+            const upg = STORE_UPGRADES.find(u => u.id === upgradeId);
+            if (!upg || upg.purchased) return;
+            if (state.money < upg.cost) {
+                showToast(`Need ₹${upg.cost.toLocaleString('en-IN')} for ${upg.name}`);
+                return;
+            }
+
+            state.money -= upg.cost;
+            upg.purchased = true;
+            sfx.unlock();
+
+            if (upgradeId === 'expand_shop') {
+                state.shopExpanded = true;
+                worldGroup.remove(expansionNeighbor);
+                navRevision++;
+                shopFloor.scale.set(17.5, 0.16, 12.5);
+                shopFloor.position.x = 2.0;
+                backWall.scale.x = 17.8;
+                backWall.position.x = 2.0;
+                backTrim.scale.x = 17.9;
+                backTrim.position.x = 2.0;
+                buildFloorTiles(15);
+                showToast('Store expanded and customer arrival rate doubled');
+            }
+
+            renderAllMenus();
+            updateHUD();
+        }
+
+        function purchaseLevelUpgrade(upgradeId) {
+            const upg = LEVEL_UPGRADES.find(u => u.id === upgradeId);
+            if (!upg || upg.level >= upg.maxLevel) return;
+
+            if (upg.requires) {
+                const req = LEVEL_UPGRADES.find(r => r.id === upg.requires);
+                if (!req || req.level === 0) {
+                    showToast(`Hire ${req ? req.name.replace('Hire ', '') : 'staff'} first`);
+                    return;
+                }
+            }
+
+            const cost = getUpgradeCost(upg);
+            if (state.money < cost) {
+                showToast(`Need ₹${cost.toLocaleString('en-IN')} for ${upg.name}`);
+                return;
+            }
+
+            state.money -= cost;
+            upg.level += 1;
+            sfx.unlock();
+
+            if (upgradeId === 'player_carry') {
+                state.maxCarry = 4 + (upg.level - 1) * 2;
+                showToast(`Player Carry Limit upgraded to ${state.maxCarry} phones`);
+            } else if (upgradeId === 'player_speed') {
+                state.playerSpeed = BASE_PLAYER_SPEED * (1 + (upg.level - 1) * 0.10);
+                showToast(`Player Speed upgraded to Lv.${upg.level}`);
+            } else if (upgradeId === 'hire_stocker') {
+                spawnStockerStaff();
+                showToast('Restocker hired for automatic shelf stocking');
+            } else if (upgradeId === 'stocker_carry') {
+                state.stockerMaxCarry = 3 + (upg.level - 1) * 2;
+                showToast(`Restocker Carry Limit upgraded to ${state.stockerMaxCarry} phones`);
+            } else if (upgradeId === 'stocker_speed') {
+                state.stockerSpeed = BASE_STOCKER_SPEED * (1 + (upg.level - 1) * 0.15);
+                showToast(`Restocker Speed upgraded to Lv.${upg.level}`);
+            } else if (upgradeId === 'hire_cashier') {
+                spawnCashierStaff();
+                const pad = floorPads.find(p => p.id === 'cashier');
+                if (pad) {
+                    pad.active = false;
+                    pad.group.visible = false;
+                }
+                showToast('Cashier hired for automatic checkout');
+            } else if (upgradeId === 'cashier_speed') {
+                state.checkoutSpeedMult = 1 + (upg.level - 1) * 0.25;
+                showToast(`Cashier Checkout Speed upgraded to Lv.${upg.level}`);
+            }
+
+            renderAllMenus();
+            updateHUD();
+        }
+
+        function renderAllMenus() {
+            // 1. Render Supplier Brands (Tactile Cream Cards with +1 and +3 3D Buttons)
+            const brandsContainer = document.getElementById('panel-brands');
+            brandsContainer.innerHTML = '';
+
+            const queuedSummaryEl = document.getElementById('manifest-summary');
+            if (state.pendingOrders.length > 0) {
+                const summaryParts = state.pendingOrders.map(o => `${o.count}x ${o.brand.name}`);
+                queuedSummaryEl.textContent = `In Van: ${summaryParts.join(' + ')}`;
+            } else {
+                queuedSummaryEl.textContent = 'Instant Dispatch Ready';
+            }
+
+            PHONE_BRANDS.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'tycoon-cream-card p-3 flex flex-col justify-between gap-2.5';
+
+                const unitCost = Math.round(b.boxPrice / b.boxCount);
+                const profit = Math.round(b.sellPrice - unitCost);
+                const queuedForBrand = state.pendingOrders.find(o => o.brand.id === b.id)?.count || 0;
+
+                if (!b.unlocked) {
+                    const canUnlock = state.money >= b.unlockCost;
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-9 h-9 rounded-xl border-2 border-stone-800 flex items-center justify-center shadow-sm shrink-0" style="background:${b.hex}">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <rect x="7" y="2" width="10" height="20" rx="2" ry="2" />
+                                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-extrabold text-stone-800 text-xs sm:text-sm leading-tight">${b.name}</div>
+                                    <div class="text-[10px] font-bold text-stone-500">${b.model}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider bg-stone-800 text-amber-300 px-2 py-0.5 rounded-full font-extrabold">${b.tier}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] bg-[#efe2ce] border border-[#d6c2a8] px-2.5 py-1 rounded-xl font-bold">
+                            <span class="text-stone-700">Sell: <strong class="text-emerald-700">₹${b.sellPrice.toLocaleString('en-IN')}</strong></span>
+                            <span class="text-sky-700 font-extrabold">+₹${profit}/ea</span>
+                        </div>
+                        <button class="btn-unlock w-full py-2 px-3 rounded-xl font-extrabold text-xs ${
+                            canUnlock ? 'tycoon-btn-amber' : 'tycoon-btn-disabled'
+                        }">
+                            Unlock Brand (₹${b.unlockCost.toLocaleString('en-IN')})
+                        </button>
+                    `;
+                    card.querySelector('.btn-unlock').addEventListener('click', () => orderSupplierDelivery(b.id, 3));
+                } else {
+                    const canBuy1 = state.money >= unitCost;
+                    const canBuy3 = state.money >= b.boxPrice;
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-9 h-9 rounded-xl border-2 border-stone-800 flex items-center justify-center shadow-sm shrink-0" style="background:${b.hex}">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <rect x="7" y="2" width="10" height="20" rx="2" ry="2" />
+                                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-extrabold text-stone-800 text-xs sm:text-sm leading-tight">${b.name}</div>
+                                    <div class="text-[10px] font-bold text-stone-500">${b.model}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider ${queuedForBrand > 0 ? 'bg-amber-400 text-amber-950 border border-amber-700' : 'bg-stone-800 text-white'} px-2 py-0.5 rounded-full font-extrabold">
+                                ${queuedForBrand > 0 ? `In Van: ${queuedForBrand}` : b.tier}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] bg-[#efe2ce] border border-[#d6c2a8] px-2.5 py-1 rounded-xl font-bold">
+                            <span class="text-stone-700">Sell: <strong class="text-emerald-700">₹${b.sellPrice.toLocaleString('en-IN')}</strong></span>
+                            <span class="text-sky-700 font-extrabold">+₹${profit}/ea</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="btn-buy-1 py-2 px-2 rounded-xl font-extrabold text-[11px] ${
+                                canBuy1 ? 'tycoon-btn-blue' : 'tycoon-btn-disabled'
+                            }">
+                                +1 (₹${unitCost.toLocaleString('en-IN')})
+                            </button>
+                            <button class="btn-buy-3 py-2 px-2 rounded-xl font-extrabold text-[11px] ${
+                                canBuy3 ? 'tycoon-btn-green' : 'tycoon-btn-disabled'
+                            }">
+                                +3 (₹${b.boxPrice.toLocaleString('en-IN')})
+                            </button>
+                        </div>
+                    `;
+                    card.querySelector('.btn-buy-1').addEventListener('click', () => orderSupplierDelivery(b.id, 1));
+                    card.querySelector('.btn-buy-3').addEventListener('click', () => orderSupplierDelivery(b.id, 3));
+                }
+
+                brandsContainer.appendChild(card);
+            });
+
+            // 2. Render Furniture Catalog & Store Expansion (Cream Tycoon Cards)
+            const storeUpgContainer = document.getElementById('panel-store-upgrades');
+            storeUpgContainer.innerHTML = '';
+
+            FURNITURE.forEach(type => {
+                const card = document.createElement('div');
+                card.className = 'tycoon-cream-card p-3 flex flex-col justify-between gap-2.5';
+                const canAfford = state.money >= type.cost;
+                const totalSlots = type.cols * type.rows * type.levels;
+                const hexColor = '#' + type.color.toString(16).padStart(6, '0');
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-start justify-between gap-2 mb-1">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-xl border-2 border-stone-800 flex items-center justify-center shadow-sm shrink-0" style="background:${hexColor}">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="font-extrabold text-stone-800 text-xs sm:text-sm leading-tight">${type.name}</div>
+                                    <div class="text-[10px] font-bold text-stone-500">${type.width.toFixed(1)} × ${type.depth.toFixed(1)} m · Delivered to Bay</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] uppercase tracking-wider bg-stone-800 text-amber-300 px-2 py-0.5 rounded-full font-extrabold shrink-0">${totalSlots} Slots</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] bg-[#efe2ce] border border-[#d6c2a8] px-2.5 py-1 rounded-xl font-bold mt-1.5">
+                            <span class="text-stone-700">Tiers: <strong class="text-stone-900">${type.levels} Level(s)</strong></span>
+                            <span class="text-emerald-800 font-extrabold">Place Anywhere</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 px-3 rounded-xl font-extrabold text-xs ${
+                        canAfford ? 'tycoon-btn-green' : 'tycoon-btn-disabled'
+                    }">
+                        Order Furniture (₹${type.cost.toLocaleString('en-IN')})
+                    </button>
+                `;
+                card.querySelector('button').addEventListener('click', () => orderFurniture(type));
+                storeUpgContainer.appendChild(card);
+            });
+
+            STORE_UPGRADES.forEach(u => {
+                const card = document.createElement('div');
+                card.className = 'tycoon-cream-card p-3 flex flex-col justify-between gap-2.5';
+                const canAfford = state.money >= u.cost && !u.purchased;
+                const progressPct = u.purchased ? 100 : 0;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="font-extrabold text-stone-800 text-xs sm:text-sm">${u.name}</span>
+                            <span class="text-[10px] uppercase tracking-wider bg-stone-800 text-amber-300 px-2 py-0.5 rounded-full font-extrabold">${u.tag}</span>
+                        </div>
+                        <div class="text-[11px] font-semibold text-stone-600 leading-tight mb-2">${u.desc}</div>
+                        <div class="tycoon-progress-track h-4 w-full flex items-center justify-center">
+                            <div class="tycoon-progress-fill absolute left-0 top-0 bottom-0" style="width: ${progressPct}%"></div>
+                            <span class="relative z-10 text-[10px] font-extrabold text-stone-900">${u.purchased ? '1/1 Built' : '0/1'}</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 px-3 rounded-xl font-extrabold text-xs ${
+                        u.purchased
+                            ? 'tycoon-btn-complete cursor-default'
+                            : (canAfford ? 'tycoon-btn-amber' : 'tycoon-btn-disabled')
+                    }">
+                        ${u.purchased ? 'Installed' : `Expand (₹${u.cost.toLocaleString('en-IN')})`}
+                    </button>
+                `;
+                if (!u.purchased) {
+                    card.querySelector('button').addEventListener('click', () => purchaseStoreUpgrade(u.id));
+                }
+                storeUpgContainer.appendChild(card);
+            });
+
+            // 3. Render Self (Player) & Staff Multi-Level Upgrades (Cream Tycoon Cards with Level Progress Bar)
+            const playerContainer = document.getElementById('panel-player-upgrades');
+            const staffContainer = document.getElementById('panel-staff-upgrades');
+            playerContainer.innerHTML = '';
+            staffContainer.innerHTML = '';
+
+            LEVEL_UPGRADES.forEach(u => {
+                const card = document.createElement('div');
+                card.className = 'tycoon-cream-card p-3 flex flex-col justify-between gap-2.5';
+
+                const isMaxed = u.level >= u.maxLevel;
+                const reqUpg = u.requires ? LEVEL_UPGRADES.find(r => r.id === u.requires) : null;
+                const lockedByReq = reqUpg && reqUpg.level === 0;
+                const cost = getUpgradeCost(u);
+                const canAfford = !isMaxed && !lockedByReq && state.money >= cost;
+
+                const progressPct = Math.round((u.level / u.maxLevel) * 100);
+                const levelText = u.maxLevel === 1
+                    ? (u.level > 0 ? '1/1 Hired' : '0/1')
+                    : `Lv. ${u.level}/${u.maxLevel}`;
+
+                let btnText = '';
+                if (isMaxed) {
+                    btnText = u.maxLevel === 1 ? 'Hired' : 'Max Level';
+                } else if (lockedByReq) {
+                    btnText = `Requires ${reqUpg.name.replace('Hire ', '')}`;
+                } else if (u.maxLevel === 1) {
+                    btnText = `Hire (₹${cost.toLocaleString('en-IN')})`;
+                } else {
+                    btnText = `Upgrade (₹${cost.toLocaleString('en-IN')})`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="font-extrabold text-stone-800 text-xs sm:text-sm">${u.name}</span>
+                            <span class="text-[10px] font-extrabold text-emerald-800 bg-emerald-200/80 border border-emerald-400 px-2 py-0.5 rounded-full">
+                                ${u.getStatText(u.level)}
+                            </span>
+                        </div>
+                        <div class="text-[11px] font-semibold text-stone-600 leading-tight mb-2">${u.desc}</div>
+                        <div class="tycoon-progress-track h-4 w-full flex items-center justify-center">
+                            <div class="tycoon-progress-fill absolute left-0 top-0 bottom-0" style="width: ${progressPct}%"></div>
+                            <span class="relative z-10 text-[10px] font-extrabold text-stone-900">${levelText}</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 px-3 rounded-xl font-extrabold text-xs ${
+                        isMaxed
+                            ? 'tycoon-btn-complete cursor-default'
+                            : (canAfford ? 'tycoon-btn-green' : 'tycoon-btn-disabled')
+                    }">
+                        ${btnText}
+                    </button>
+                `;
+
+                if (!isMaxed) {
+                    card.querySelector('button').addEventListener('click', () => purchaseLevelUpgrade(u.id));
+                }
+
+                if (u.category === 'player') {
+                    playerContainer.appendChild(card);
+                } else {
+                    staffContainer.appendChild(card);
+                }
+            });
+        }
+
+        function updateHUD() {
+            document.getElementById('money-display').textContent = Math.round(state.money).toLocaleString('en-IN');
+            document.getElementById('carry-display').textContent = `${player.carryStack.length}/${state.maxCarry}`;
+
+            const totalQueued = state.pendingOrders.reduce((s, o) => s + o.count, 0);
+            const badgeEl = document.getElementById('delivery-status-badge');
+            if (totalQueued > 0) {
+                badgeEl.textContent = `Van (${totalQueued}) | Bay: ${dynamicCrates.length}`;
+                badgeEl.className = 'text-[10px] font-extrabold text-amber-900 bg-amber-300/80 border border-amber-500 px-1.5 py-0.2 rounded-md whitespace-nowrap';
+            } else {
+                badgeEl.textContent = `Bay: ${dynamicCrates.length}`;
+                badgeEl.className = 'text-[10px] font-extrabold text-emerald-800 bg-emerald-200/80 border border-emerald-400 px-1.5 py-0.2 rounded-md whitespace-nowrap';
+            }
+
+            const unlockedShelves = shelves.filter(s => s.unlocked);
+            const totalStocked = unlockedShelves.reduce((acc, s) => acc + s.items.length, 0);
+            const totalCap = unlockedShelves.reduce((n, s) => n + s.capacity, 0);
+            document.getElementById('stat-shelves').textContent = `${totalStocked}/${totalCap}`;
+            const shelfPct = totalCap > 0 ? Math.min(100, Math.round((totalStocked / totalCap) * 100)) : 0;
+            const shelfBar = document.getElementById('shelf-progress-bar');
+            if (shelfBar) shelfBar.style.width = `${shelfPct}%`;
+
+            document.getElementById('stat-sold').textContent = state.totalSold;
+
+            for (let i = state.stages.length - 1; i >= 0; i--) {
+                if (state.totalRevenue >= state.stages[i].minRev) {
+                    state.stageIndex = i;
+                    break;
+                }
+            }
+            document.getElementById('stage-badge').textContent = state.stages[state.stageIndex].name;
+
+            const objEl = document.getElementById('objective-text');
+            if (state.totalSold === 0 && totalStocked === 0 && player.carryStack.length === 0) {
+                objEl.textContent = 'Walk to the yellow Loading Bay to pick up your starter phone.';
+            } else if (player.carryStack.length > 0 && totalStocked < totalCap) {
+                objEl.textContent = 'Walk near a Display Shelf to place the phones on display.';
+            } else if (customers.some(c => c.state === 'QUEUING') && !cashierStaff) {
+                objEl.textContent = 'Stand on the blue ring behind the Checkout Counter to ring up the customer.';
+            } else if (cashPileBundles.length > 0) {
+                objEl.textContent = 'Walk over the green Cash Pile pad to collect your money.';
+            } else if (dynamicCrates.length === 0 && totalStocked === 0 && totalQueued === 0) {
+                objEl.textContent = 'Tap Shop at the bottom-right to order phones.';
+            } else {
+                objEl.textContent = 'Serve customers, mix & match phone orders, and upgrade your staff.';
+            }
+        }
+
+        // Menu Drawer & Tab Toggles
+        const drawerStore = document.getElementById('drawer-store');
+        const drawerStaff = document.getElementById('drawer-staff');
+
+        function switchShopTab(tab) {
+            state.shopTab = tab;
+            const isPhones = tab === 'phones';
+            document.getElementById('tab-btn-phones').classList.toggle('active', isPhones);
+            document.getElementById('tab-btn-furniture').classList.toggle('active', !isPhones);
+            document.getElementById('tab-content-phones').classList.toggle('hidden', !isPhones);
+            document.getElementById('tab-content-furniture').classList.toggle('hidden', isPhones);
+        }
+
+        function switchUpgradeTab(tab) {
+            state.upgradeTab = tab;
+            const isPlayer = tab === 'player';
+            document.getElementById('tab-btn-player').classList.toggle('active', isPlayer);
+            document.getElementById('tab-btn-workers').classList.toggle('active', !isPlayer);
+            document.getElementById('tab-content-player').classList.toggle('hidden', !isPlayer);
+            document.getElementById('tab-content-workers').classList.toggle('hidden', isPlayer);
+        }
+
+        function toggleTopDrawer(which) {
+            if (state.activeDrawer === which || which === null) {
+                state.activeDrawer = null;
+                drawerStore.classList.add('hidden');
+                drawerStaff.classList.add('hidden');
+                return;
+            }
+            state.activeDrawer = which;
+            renderAllMenus();
+            if (which === 'store') {
+                switchShopTab(state.shopTab);
+                drawerStore.classList.remove('hidden');
+                drawerStaff.classList.add('hidden');
+            } else if (which === 'staff') {
+                switchUpgradeTab(state.upgradeTab);
+                drawerStaff.classList.remove('hidden');
+                drawerStore.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('tab-btn-phones').addEventListener('click', () => switchShopTab('phones'));
+        document.getElementById('tab-btn-furniture').addEventListener('click', () => switchShopTab('furniture'));
+        document.getElementById('tab-btn-player').addEventListener('click', () => switchUpgradeTab('player'));
+        document.getElementById('tab-btn-workers').addEventListener('click', () => switchUpgradeTab('workers'));
+
+        document.getElementById('btn-menu-store').addEventListener('click', () => toggleTopDrawer('store'));
+        document.getElementById('btn-menu-staff').addEventListener('click', () => toggleTopDrawer('staff'));
+        document.getElementById('btn-close-store').addEventListener('click', () => toggleTopDrawer(null));
+        document.getElementById('btn-close-staff').addEventListener('click', () => toggleTopDrawer(null));
+
+        document.getElementById('btn-sound').addEventListener('click', () => {
+            sfx.enabled = !sfx.enabled;
+            document.getElementById('icon-sound-on').classList.toggle('hidden', !sfx.enabled);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', sfx.enabled);
+        });
+
+        document.getElementById('btn-zoom').addEventListener('click', () => {
+            state.zoomIndex = (state.zoomIndex + 1) % state.zoomLevels.length;
+            frustumSize = state.zoomLevels[state.zoomIndex];
+            onWindowResize();
+        });
+
+        /**********************************************************************
+         * 15. NAVIGATION, PATHFINDING & MAIN GAME LOOP
+         **********************************************************************/
+        let lastTime = performance.now();
+        const scratchVecA = new THREE.Vector3();
+        const scratchVecB = new THREE.Vector3();
+        const CHECKOUT_QUEUE_FRONT = new THREE.Vector3(COUNTER_POS.x, 0.08, COUNTER_POS.z + 1.45);
+
+        const ACTOR_RADIUS = 0.42, NAV_STEP = 0.5, NAV_X0 = -16, NAV_Z0 = -6, NAV_W = 65, NAV_H = 31;
+
+        function shelfRect(s) {
+            const q = Math.abs(Math.round(s.rotation / (Math.PI / 2))) % 2 === 1;
+            return { x: s.pos.x, z: s.pos.z, w: q ? s.type.depth : s.type.width, d: q ? s.type.width : s.type.depth };
+        }
+        function circleHitsRect(x, z, r, b) {
+            const dx = Math.max(Math.abs(x - b.x) - b.w / 2, 0), dz = Math.max(Math.abs(z - b.z) - b.d / 2, 0);
+            return dx * dx + dz * dz < r * r;
+        }
+        function worldBlocked(x, z, r = ACTOR_RADIUS) {
+            const walls = [
+                { x: backWall.position.x, z: -6.5, w: backWall.scale.x, d: 0.45 },
+                { x: -6.5, z: -2.5, w: 0.45, d: 8.5 }
+            ];
+            for (const b of walls) if (circleHitsRect(x, z, r, b)) return true;
+            if (circleHitsRect(x, z, r, { x: COUNTER_POS.x, z: COUNTER_POS.z, w: 2.95, d: 1.5 })) return true;
+            for (const shelf of shelves) if (shelf.unlocked && circleHitsRect(x, z, r, shelfRect(shelf))) return true;
+            return false;
+        }
+        function distanceToShelf(p, s) {
+            const b = shelfRect(s);
+            return Math.hypot(Math.max(0, Math.abs(p.x - b.x) - b.w / 2), Math.max(0, Math.abs(p.z - b.z) - b.d / 2));
+        }
+        function shelfApproaches(s) {
+            const b = shelfRect(s), pts = [], gap = 0.70;
+            for (const side of [-1, 1]) {
+                for (let x = -b.w / 2 + 0.48; x <= b.w / 2 - 0.45; x += 1.02) pts.push(new THREE.Vector3(b.x + x, 0.08, b.z + side * (b.d / 2 + gap)));
+                for (let z = -b.d / 2 + 0.48; z <= b.d / 2 - 0.45; z += 1.02) pts.push(new THREE.Vector3(b.x + side * (b.w / 2 + gap), 0.08, b.z + z));
+            }
+            return pts.filter(p => p.x >= -9 && p.x <= (state.shopExpanded ? 10.2 : 7) && p.z >= -5.8 && p.z <= 5.4 && !worldBlocked(p.x, p.z));
+        }
+        function nearestShelfApproach(s, p) {
+            const points = shelfApproaches(s);
+            points.sort((a, b) => a.distanceToSquared(p) - b.distanceToSquared(p));
+            return points[0] || null;
+        }
+        function releaseBrowse(c) { c.browsePos = null; c.targetShelf = null; c.waitTimer = 0; }
+        function reserveBrowseSpot(c) {
+            const reserved = customers.filter(o => o !== c && o.state === 'BROWSING' && o.browsePos).map(o => o.browsePos);
+            const candidates = [];
+            for (const sh of shelves) if (sh.unlocked) for (const p of shelfApproaches(sh)) {
+                if (reserved.some(o => o.distanceTo(p) < 1.05)) continue;
+                candidates.push({ s: sh, p, score: c.pos.distanceToSquared(p) + (sh.items.length ? 0 : 250) });
+            }
+            candidates.sort((a, b) => a.score - b.score);
+            if (candidates.length) { c.targetShelf = candidates[0].s; c.browsePos = candidates[0].p; c.nav = null; }
+        }
+        function queuePosition(index, queue) {
+            if (index < 0) return null;
+            const used = [];
+            for (let i = 0; i <= index; i++) {
+                const preferred = new THREE.Vector3(COUNTER_POS.x, 0.08, COUNTER_POS.z + 1.45 + i * 1.12);
+                const choices = [];
+                for (let ring = 0; ring <= 8; ring++) {
+                    for (let dx = -ring; dx <= ring; dx++) for (let dz = -ring; dz <= ring; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
+                        const p = new THREE.Vector3(preferred.x + dx * 0.55, 0.08, preferred.z + dz * 0.55);
+                        if (p.x < -6 || p.x > 7 || p.z < -5.8 || p.z > 7.5 || worldBlocked(p.x, p.z)) continue;
+                        if (used.some(u => u.distanceTo(p) < 1.05)) continue;
+                        if (customers.some(o => o.state === 'BROWSING' && o.browsePos && o.browsePos.distanceTo(p) < 1)) continue;
+                        choices.push(p);
+                    }
+                    if (choices.length) break;
+                }
+                choices.sort((a, b) => a.distanceToSquared(preferred) - b.distanceToSquared(preferred));
+                if (!choices.length) return null;
+                used.push(choices[0]);
+            }
+            return used[index];
+        }
+        function gridIndex(x, z) { return z * NAV_W + x; }
+        function gridPoint(x, z) { return new THREE.Vector3(NAV_X0 + x * NAV_STEP, 0.08, NAV_Z0 + z * NAV_STEP); }
+        function navPath(from, to, agent, avoidPeople) {
+            const snap = p => ({ x: Math.max(0, Math.min(NAV_W - 1, Math.round((p.x - NAV_X0) / NAV_STEP))), z: Math.max(0, Math.min(NAV_H - 1, Math.round((p.z - NAV_Z0) / NAV_STEP))) });
+            const start = snap(from), goal = snap(to), total = NAV_W * NAV_H;
+            const blocked = new Int8Array(total); blocked.fill(-1);
+            const others = [player, ...customers]; if (stockerStaff) others.push(stockerStaff); if (cashierStaff) others.push(cashierStaff);
+            const other = avoidPeople ? others.filter(c => c !== agent).map(c => c.pos) : [];
+            function blockedAt(x, z) {
+                if (x < 0 || x >= NAV_W || z < 0 || z >= NAV_H) return true;
+                const i = gridIndex(x, z); if (blocked[i] >= 0) return blocked[i] === 1;
+                const p = gridPoint(x, z);
+                const b = worldBlocked(p.x, p.z, ACTOR_RADIUS + 0.04) || other.some(o => o.distanceToSquared(p) < 0.9 * 0.9 && p.distanceToSquared(to) > 0.65 * 0.65 && p.distanceToSquared(from) > 0.75 * 0.75);
+                blocked[i] = b ? 1 : 0; return b;
+            }
+            let best = null, bd = Infinity;
+            for (let z = Math.max(0, goal.z - 3); z <= Math.min(NAV_H - 1, goal.z + 3); z++) for (let x = Math.max(0, goal.x - 3); x <= Math.min(NAV_W - 1, goal.x + 3); x++) {
+                if (blockedAt(x, z)) continue;
+                const p = gridPoint(x, z), d = p.distanceToSquared(to);
+                if (d < bd) { best = { x, z }; bd = d; }
+            }
+            if (!best || bd > 1.6 * 1.6) return [];
+            const si = gridIndex(start.x, start.z), gi = gridIndex(best.x, best.z), dist = new Float32Array(total), parent = new Int32Array(total), closed = new Uint8Array(total);
+            dist.fill(Infinity); parent.fill(-1); dist[si] = 0;
+            const open = [si], dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+            while (open.length) {
+                let pick = 0, score = Infinity;
+                for (let i = 0; i < open.length; i++) {
+                    const id = open[i], x = id % NAV_W, z = Math.floor(id / NAV_W), h = Math.hypot(x - best.x, z - best.z), f = dist[id] + h;
+                    if (f < score) { score = f; pick = i; }
+                }
+                const cur = open.splice(pick, 1)[0]; if (closed[cur]) continue; if (cur === gi) break; closed[cur] = 1;
+                const x = cur % NAV_W, z = Math.floor(cur / NAV_W);
+                for (const [dx, dz] of dirs) {
+                    const nx = x + dx, nz = z + dz; if (blockedAt(nx, nz)) continue;
+                    if (dx && dz && (blockedAt(x + dx, z) || blockedAt(x, z + dz))) continue;
+                    const ni = gridIndex(nx, nz), cost = dist[cur] + (dx && dz ? 1.4142 : 1);
+                    if (cost < dist[ni]) { dist[ni] = cost; parent[ni] = cur; open.push(ni); }
+                }
+            }
+            if (gi !== si && parent[gi] < 0) return [];
+            const path = []; let n = gi;
+            while (n !== si && n >= 0) { path.push(gridPoint(n % NAV_W, Math.floor(n / NAV_W))); n = parent[n]; }
+            path.reverse();
+            if (bd < 0.36 && !worldBlocked(to.x, to.z)) path.push(to.clone());
+            return path;
+        }
+        function crowdBlocked(agent, x, z) {
+            const people = [player, ...customers]; if (stockerStaff) people.push(stockerStaff); if (cashierStaff) people.push(cashierStaff);
+            for (const p of people) if (p !== agent) {
+                const old = Math.hypot(agent.pos.x - p.pos.x, agent.pos.z - p.pos.z), next = Math.hypot(x - p.pos.x, z - p.pos.z);
+                if (next < 0.86 && next < old - 0.00001) return true;
+            }
+            return false;
+        }
+        function moveAgent(agent, target, speed, dt) {
+            if (!target) return false;
+            const changed = !agent.nav || agent.nav.rev !== navRevision || agent.nav.target.distanceToSquared(target) > 0.18 * 0.18;
+            if (changed) agent.nav = { target: target.clone(), rev: navRevision, path: [], timer: 0, stuck: 0 };
+            const n = agent.nav; n.timer -= dt;
+            if (n.timer <= 0) {
+                n.path = navPath(agent.pos, target, agent, n.stuck > 0.7);
+                n.timer = n.path.length ? 1.8 : 0.7;
+            }
+            while (n.path.length && agent.pos.distanceTo(n.path[0]) < 0.12) n.path.shift();
+            if (!n.path.length) { n.stuck += dt; return false; }
+            const next = n.path[0], dx = next.x - agent.pos.x, dz = next.z - agent.pos.z, len = Math.hypot(dx, dz);
+            const step = Math.min(speed * dt, len), ux = dx / len, uz = dz / len;
+            let moved = false;
+            for (const ang of [0, 0.45, -0.45, 0.85, -0.85, 1.3, -1.3]) {
+                const cs = Math.cos(ang), sn = Math.sin(ang), vx = ux * cs - uz * sn, vz = ux * sn + uz * cs;
+                const x = agent.pos.x + vx * step, z = agent.pos.z + vz * step;
+                if (!worldBlocked(x, z) && !crowdBlocked(agent, x, z)) {
+                    agent.pos.x = x; agent.pos.z = z; agent.mesh.rotation.y = Math.atan2(vx, vz); moved = true; break;
+                }
+            }
+            n.stuck = moved ? Math.max(0, n.stuck - dt * 2) : n.stuck + dt;
+            if (n.stuck > 1.1) { n.timer = 0; n.stuck = 0.75; }
+            return moved;
+        }
+
+        function updateGame(dt) {
+            if (rapierReady && rapierWorld && dynamicCrates.length > 0) {
+                rapierWorld.step();
+            }
+
+            // 1. Sync Supply Crates
+            for (let i = 0; i < dynamicCrates.length; i++) {
+                const c = dynamicCrates[i];
+                if (c.body && rapierReady) {
+                    const t = c.body.translation();
+                    const r = c.body.rotation();
+                    const clampedX = Math.max(LOADING_BAY_POS.x - 1.5, Math.min(LOADING_BAY_POS.x + 1.5, t.x));
+                    const clampedZ = Math.max(LOADING_BAY_POS.z - 1.5, Math.min(LOADING_BAY_POS.z + 1.5, t.z));
+                    c.mesh.position.set(clampedX, Math.max(0.24, t.y), clampedZ);
+                    c.mesh.quaternion.set(r.x, r.y, r.z, r.w);
+                } else if (c.mesh.position.y > c.targetY) {
+                    c.vy -= 18 * dt;
+                    c.mesh.position.y = Math.max(c.targetY, c.mesh.position.y + c.vy * dt);
+                }
+            }
+
+            // 2. Delivery Van Animation
+            if (activeTruckAnim) {
+                activeTruckAnim.timer += dt;
+                if (activeTruckAnim.phase === 'arrive') {
+                    truckGroup.position.x = THREE.MathUtils.lerp(truckGroup.position.x, -6.5, dt * 4.8);
+                    if (Math.abs(truckGroup.position.x - (-6.5)) < 0.25) {
+                        activeTruckAnim.phase = 'unload';
+                        activeTruckAnim.timer = 0;
+
+                        let totalUnloaded = 0;
+                        while (state.pendingOrders.length > 0) {
+                            const order = state.pendingOrders.shift();
+                            spawnSupplyCrateAtBay(order.brand, order.count, false);
+                            totalUnloaded += order.count;
+                        }
+                        sfx.pickup(2);
+                        if (totalUnloaded > 0) {
+                            showToast(`Delivery van unloaded ${totalUnloaded} phones at Loading Bay`);
+                        }
+                        renderAllMenus();
+                        updateHUD();
+                    }
+                } else if (activeTruckAnim.phase === 'unload') {
+                    if (activeTruckAnim.timer > 0.75) activeTruckAnim.phase = 'depart';
+                } else if (activeTruckAnim.phase === 'depart') {
+                    truckGroup.position.x += dt * 18;
+                    if (truckGroup.position.x > 24) {
+                        activeTruckAnim = null;
+                        updateHUD();
+                        renderAllMenus();
+                        if (state.pendingOrders.length > 0) {
+                            dispatchTruckIfNeeded();
+                        }
+                    }
+                }
+            }
+
+            // 3. Player Movement
+            let rawX = input.joyVec.x;
+            let rawY = input.joyVec.y;
+            if (input.keys['KeyW'] || input.keys['ArrowUp']) rawY -= 1;
+            if (input.keys['KeyS'] || input.keys['ArrowDown']) rawY += 1;
+            if (input.keys['KeyA'] || input.keys['ArrowLeft']) rawX -= 1;
+            if (input.keys['KeyD'] || input.keys['ArrowRight']) rawX += 1;
+
+            const mag = Math.hypot(rawX, rawY);
+            let isPlayerMoving = false;
+            if (mag > 0.05) {
+                isPlayerMoving = true;
+                const nx = rawX / Math.max(1, mag);
+                const ny = rawY / Math.max(1, mag);
+
+                const worldVX = (nx + ny) * 0.7071;
+                const worldVZ = (ny - nx) * 0.7071;
+
+                player.vel.set(worldVX * state.playerSpeed, 0, worldVZ * state.playerSpeed);
+                const oldX = player.pos.x, oldZ = player.pos.z;
+                const nextX = oldX + player.vel.x * dt, nextZ = oldZ + player.vel.z * dt;
+                if (!worldBlocked(nextX, oldZ, ACTOR_RADIUS)) player.pos.x = nextX;
+                if (!worldBlocked(player.pos.x, nextZ, ACTOR_RADIUS)) player.pos.z = nextZ;
+                isPlayerMoving = Math.hypot(player.pos.x - oldX, player.pos.z - oldZ) > 0.0001;
+
+                const maxRight = state.shopExpanded ? 10.2 : 7.0;
+                player.pos.x = Math.max(-9.0, Math.min(maxRight, player.pos.x));
+                player.pos.z = Math.max(-5.8, Math.min(8.2, player.pos.z));
+
+                const targetAngle = Math.atan2(worldVX, worldVZ);
+                let diff = targetAngle - player.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                player.angle += diff * Math.min(1, dt * 15);
+            } else {
+                player.vel.set(0, 0, 0);
+            }
+
+            player.mesh.position.copy(player.pos);
+            player.mesh.rotation.y = player.angle;
+            animateStickman(player.mesh, isPlayerMoving, player.carryStack.length > 0, dt);
+
+            // Carry Stack Follow
+            player.mesh.userData.carryAnchor.getWorldPosition(scratchVecA);
+            for (let i = 0; i < player.carryStack.length; i++) {
+                const item = player.carryStack[i];
+                const wobbleLag = Math.max(0.22, 0.58 - i * 0.06);
+                item.mesh.position.x = THREE.MathUtils.lerp(item.mesh.position.x, scratchVecA.x, wobbleLag);
+                item.mesh.position.z = THREE.MathUtils.lerp(item.mesh.position.z, scratchVecA.z, wobbleLag);
+                item.mesh.position.y = scratchVecA.y + i * 0.19;
+                item.mesh.rotation.y = player.angle;
+            }
+
+            updateFurniture(dt);
+
+            // Camera Follow
+            const targetCamX = player.pos.x * 0.35 + ISO_OFFSET.x;
+            const targetCamZ = player.pos.z * 0.35 + ISO_OFFSET.z;
+            camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, dt * 5);
+            camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, dt * 5);
+            camera.lookAt(camera.position.x - ISO_OFFSET.x, 0, camera.position.z - ISO_OFFSET.z);
+
+            // 4. Pick Up Phones from Loading Bay
+            player.pickupCooldown = Math.max(0, player.pickupCooldown - dt);
+            if (
+                !furnitureCarry && player.pos.distanceTo(LOADING_BAY_POS) < 2.9 &&
+                dynamicCrates.length > 0 &&
+                player.carryStack.length < state.maxCarry &&
+                player.pickupCooldown <= 0
+            ) {
+                player.pickupCooldown = 0.14;
+                const crate = dynamicCrates.pop();
+                if (crate.body && rapierReady && rapierWorld) {
+                    rapierWorld.removeRigidBody(crate.body);
+                }
+                crate.mesh.rotation.set(0, player.angle, 0);
+                player.carryStack.push({ mesh: crate.mesh, brand: crate.brand });
+                sfx.pickup(player.carryStack.length);
+                updateHUD();
+            }
+
+            // 5. Stock Shelves
+            player.stockCooldown = Math.max(0, player.stockCooldown - dt);
+            if (!furnitureCarry && player.carryStack.length > 0 && player.stockCooldown <= 0) {
+                for (let i = 0; i < shelves.length; i++) {
+                    const shelf = shelves[i];
+                    if (!shelf.unlocked || shelf.items.length >= shelf.capacity) continue;
+                    if (player.pos.distanceTo(shelf.pos) < 2.55) {
+                        player.stockCooldown = 0.16;
+                        const carried = player.carryStack.pop();
+                        const slotWorld = getSlotWorld(shelf, shelf.items.length);
+                        shelf.items.push(carried);
+                        sfx.stockShelf();
+                        spawnParabolicArc(carried.mesh, slotWorld, 0.2, () => {
+                            carried.mesh.rotation.set(0, shelf.rotation, 0);
+                        });
+                        updateHUD();
+                        break;
+                    }
+                }
+            }
+
+            // 6. Collect Cash Pile
+            if (cashPileBundles.length > 0 && player.pos.distanceTo(CASH_PILE_POS) < 2.2) {
+                let collectedTotal = 0;
+                const count = cashPileBundles.length;
+                const targetPlayerChest = player.pos.clone().add(new THREE.Vector3(0, 1.2, 0));
+                while (cashPileBundles.length > 0) {
+                    const b = cashPileBundles.pop();
+                    collectedTotal += b.value;
+                    spawnParabolicArc(b.mesh, targetPlayerChest, 0.2, () => {
+                        scene.remove(b.mesh);
+                    });
+                }
+                state.money += collectedTotal;
+                updateCashDecalText(0);
+                sfx.collectMoney(count);
+                const pill = document.getElementById('money-pill');
+                pill.classList.add('scale-105');
+                setTimeout(() => pill.classList.remove('scale-105'), 140);
+                renderAllMenus();
+                updateHUD();
+            }
+
+            // 7. Floor Pads
+            for (let i = 0; i < floorPads.length; i++) {
+                const pad = floorPads[i];
+                if (!pad.active) continue;
+                if (player.pos.distanceTo(pad.pos) < 1.55) {
+                    pad.dwellTimer += dt;
+                    if (pad.dwellTimer > 0.4) {
+                        pad.dwellTimer = 0;
+                        pad.onTrigger();
+                    }
+                } else {
+                    pad.dwellTimer = 0;
+                }
+            }
+
+            // 8. Restocker Staff AI
+            if (stockerStaff) {
+                stockerStaff.cooldown = Math.max(0, stockerStaff.cooldown - dt);
+                let stockerMoving = false;
+                let target = null;
+                const maxCarry = Math.max(1, state.stockerMaxCarry || 3);
+                const actionInterval = Math.max(0.08, 0.22 / (state.stockerSpeed / BASE_STOCKER_SPEED));
+                const needyShelf = shelves
+                    .filter(s => s.unlocked && s.items.length < s.capacity)
+                    .sort((a, b) => b.items.length - a.items.length || stockerStaff.pos.distanceTo(a.pos) - stockerStaff.pos.distanceTo(b.pos))[0];
+
+                if (stockerStaff.mode === 'COLLECT') {
+                    if (stockerStaff.carryStack.length >= maxCarry || (stockerStaff.carryStack.length > 0 && dynamicCrates.length === 0)) {
+                        stockerStaff.mode = 'DELIVER';
+                    } else if (dynamicCrates.length > 0) {
+                        target = LOADING_BAY_POS;
+                        if (stockerStaff.pos.distanceTo(LOADING_BAY_POS) < 2.2 && stockerStaff.cooldown <= 0) {
+                            stockerStaff.cooldown = actionInterval;
+                            const crate = dynamicCrates.pop();
+                            if (crate.body && rapierReady && rapierWorld) {
+                                rapierWorld.removeRigidBody(crate.body);
+                            }
+                            stockerStaff.carryStack.push({ mesh: crate.mesh, brand: crate.brand });
+                            if (stockerStaff.carryStack.length >= maxCarry || dynamicCrates.length === 0) {
+                                stockerStaff.mode = 'DELIVER';
+                            }
+                            updateHUD();
+                        }
+                    } else {
+                        stockerStaff.mode = stockerStaff.carryStack.length > 0 ? 'DELIVER' : 'IDLE';
+                    }
+                }
+
+                if (stockerStaff.mode === 'IDLE' && (dynamicCrates.length > 0 || stockerStaff.carryStack.length > 0)) {
+                    stockerStaff.mode = stockerStaff.carryStack.length > 0 ? 'DELIVER' : 'COLLECT';
+                }
+
+                if (stockerStaff.mode === 'DELIVER') {
+                    if (stockerStaff.carryStack.length === 0) {
+                        stockerStaff.mode = dynamicCrates.length > 0 ? 'COLLECT' : 'IDLE';
+                    } else if (needyShelf) {
+                        target = nearestShelfApproach(needyShelf, stockerStaff.pos);
+                        if (distanceToShelf(stockerStaff.pos, needyShelf) < 1.05 && stockerStaff.cooldown <= 0) {
+                            stockerStaff.cooldown = actionInterval;
+                            const item = stockerStaff.carryStack.pop();
+                            const slotWorld = getSlotWorld(needyShelf, needyShelf.items.length);
+                            needyShelf.items.push(item);
+                            spawnParabolicArc(item.mesh, slotWorld, 0.18, () => { item.mesh.rotation.set(0, needyShelf.rotation, 0); });
+                            if (stockerStaff.carryStack.length === 0) {
+                                stockerStaff.mode = dynamicCrates.length > 0 ? 'COLLECT' : 'IDLE';
+                            }
+                            updateHUD();
+                        }
+                    } else {
+                        stockerStaff.mode = 'WAIT';
+                    }
+                } else if (stockerStaff.mode === 'WAIT' && needyShelf) {
+                    stockerStaff.mode = 'DELIVER';
+                    target = nearestShelfApproach(needyShelf, stockerStaff.pos);
+                }
+
+                if (!target && stockerStaff.mode === 'IDLE') {
+                    scratchVecB.set(-2.5, 0.08, 2.5);
+                    target = scratchVecB;
+                }
+                if (target && stockerStaff.pos.distanceTo(target) > 0.24) {
+                    stockerMoving = moveAgent(stockerStaff, target, state.stockerSpeed, dt);
+                    stockerStaff.mesh.position.copy(stockerStaff.pos);
+                }
+                animateStickman(stockerStaff.mesh, stockerMoving, stockerStaff.carryStack.length > 0, dt);
+
+                stockerStaff.mesh.userData.carryAnchor.getWorldPosition(scratchVecA);
+                for (let idx = 0; idx < stockerStaff.carryStack.length; idx++) {
+                    stockerStaff.carryStack[idx].mesh.position.set(scratchVecA.x, scratchVecA.y + idx * 0.14, scratchVecA.z);
+                }
+            }
+
+            // 9. Customer Spawning & AI
+            customerSpawnTimer -= dt;
+            if (customerSpawnTimer <= 0) {
+                customerSpawnTimer = state.shopExpanded ? 2.3 : 3.6;
+                spawnCustomer();
+            }
+
+            const queuedCustomers = [];
+            for (let i = 0; i < customers.length; i++) {
+                if (customers[i].state === 'QUEUING') queuedCustomers.push(customers[i]);
+            }
+
+            for (let i = customers.length - 1; i >= 0; i--) {
+                const c = customers[i];
+                let moving = false;
+
+                if (c.state === 'ENTERING') {
+                    if (c.pos.distanceTo(c.targetPos) > 0.32) moving = moveAgent(c, c.targetPos, 4.3, dt);
+                    else { c.state = 'BROWSING'; c.nav = null; }
+                } else if (c.state === 'BROWSING') {
+                    if (
+                        !c.targetShelf || !c.targetShelf.unlocked || !c.browsePos ||
+                        worldBlocked(c.browsePos.x, c.browsePos.z, ACTOR_RADIUS) ||
+                        (c.targetShelf.items.length === 0 && shelves.some(s => s.unlocked && s.items.length > 0))
+                    ) {
+                        releaseBrowse(c);
+                        reserveBrowseSpot(c);
+                    }
+                    if (!c.browsePos) reserveBrowseSpot(c);
+                    if (c.browsePos) {
+                        if (c.pos.distanceTo(c.browsePos) > 0.30) moving = moveAgent(c, c.browsePos, 3.9, dt);
+                        else {
+                            c.mesh.rotation.y = Math.atan2(c.targetShelf.pos.x - c.pos.x, c.targetShelf.pos.z - c.pos.z);
+                            if (c.targetShelf.items.length > 0) {
+                                c.waitTimer += dt;
+                                if (c.waitTimer > 0.4) {
+                                    c.carriedItem = c.targetShelf.items.pop();
+                                    c.state = 'QUEUING';
+                                    c.waitTimer = 0;
+                                    releaseBrowse(c);
+                                    c.nav = null;
+                                    if (c.mesh.userData.statusBadge) c.mesh.userData.statusBadge.visible = true;
+                                    updateHUD();
+                                }
+                            }
+                        }
+                    }
+                } else if (c.state === 'QUEUING') {
+                    const qIndex = queuedCustomers.indexOf(c);
+                    const queueTarget = queuePosition(qIndex, queuedCustomers);
+                    if (queueTarget && c.pos.distanceTo(queueTarget) > 0.24) moving = moveAgent(c, queueTarget, 4.1, dt);
+                    else if (queueTarget) c.mesh.rotation.y = Math.PI;
+                } else if (c.state === 'LEAVING') {
+                    if (c.pos.distanceTo(c.targetPos) > 0.4) moving = moveAgent(c, c.targetPos, 4.9, dt);
+                    else {
+                        scene.remove(c.mesh);
+                        if (c.carriedItem) scene.remove(c.carriedItem.mesh);
+                        customers.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                c.mesh.position.copy(c.pos);
+                animateStickman(c.mesh, moving, Boolean(c.carriedItem), dt);
+
+                if (c.carriedItem) {
+                    c.mesh.userData.carryAnchor.getWorldPosition(scratchVecA);
+                    c.carriedItem.mesh.position.copy(scratchVecA);
+                    c.carriedItem.mesh.rotation.y = c.mesh.rotation.y;
+                }
+            }
+
+            // 10. Checkout Counter Processing
+            const frontCustomer = queuedCustomers[0];
+            const playerAtCounter = player.pos.distanceTo(CASHIER_SPOT) < 1.75;
+            standRing.material.color.setHex(playerAtCounter || cashierStaff ? 0x22c55e : 0x38bdf8);
+
+            if (
+                frontCustomer &&
+                frontCustomer.pos.distanceTo(CHECKOUT_QUEUE_FRONT) < 0.65 &&
+                (playerAtCounter || cashierStaff)
+            ) {
+                const speedMultiplier = cashierStaff ? state.checkoutSpeedMult : 1.0;
+                checkoutProgress += dt * 2.4 * speedMultiplier;
+                if (checkoutProgress >= 1.0) {
+                    checkoutProgress = 0;
+                    const soldBrand = frontCustomer.carriedItem ? frontCustomer.carriedItem.brand : PHONE_BRANDS[0];
+                    const saleAmount = soldBrand.sellPrice;
+
+                    state.totalSold += 1;
+                    state.totalRevenue += saleAmount;
+
+                    sfx.cashRegister();
+                    addCashToPile(saleAmount);
+
+                    if (frontCustomer.mesh.userData.statusBadge) {
+                        frontCustomer.mesh.userData.statusBadge.visible = false;
+                    }
+                    frontCustomer.state = 'LEAVING';
+                    frontCustomer.targetPos = new THREE.Vector3(Math.random() < 0.5 ? -15 : 15, 0.08, 8.0);
+                    updateHUD();
+                }
+            } else {
+                checkoutProgress = 0;
+            }
+
+            // 11. Step Parabolic Arcs
+            for (let i = activeArcs.length - 1; i >= 0; i--) {
+                const a = activeArcs[i];
+                a.elapsed += dt;
+                const t = Math.min(1, a.elapsed / a.duration);
+                a.mesh.position.lerpVectors(a.start, a.end, t);
+                a.mesh.position.y += Math.sin(t * Math.PI) * 1.55;
+                if (t >= 1) {
+                    if (a.onComplete) a.onComplete();
+                    activeArcs.splice(i, 1);
+                }
+            }
+        }
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+            updateGame(dt);
+            updateTraffic(dt);
+            updateDayNight(dt);
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const asp = w / h;
+            camera.left = -frustumSize * asp;
+            camera.right = frustumSize * asp;
+            camera.top = frustumSize;
+            camera.bottom = -frustumSize;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        /**********************************************************************
+         * 16. BOOTSTRAP GAME
+         **********************************************************************/
+        window.onload = async function () {
+            await initRapierPhysics();
+
+            spawnSupplyCrateAtBay(PHONE_BRANDS[0], 1, true);
+            spawnCustomer();
+
+            renderAllMenus();
+            updateHUD();
+            requestAnimationFrame(animate);
+        };
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a531255db91096a8',t:'MTc5MzQzMzgzNQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a531255db91096a8',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

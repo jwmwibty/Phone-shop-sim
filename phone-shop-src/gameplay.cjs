@@ -1,0 +1,37 @@
+const {chromium}=require('/home/user/node_modules/playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--enable-webgl']});
+ const page=await browser.newPage({viewport:{width:850,height:550}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.stack));
+ await page.addInitScript(()=>{window.requestAnimationFrame=()=>1;});
+ await page.goto('http://127.0.0.1:4173/',{waitUntil:'load'});
+ console.log('initial',await page.evaluate(()=>({money:state.money,bay:dynamicCrates.length,carry:player.carryStack.length,shelf:shelves.map(s=>s.items.length),people:customers.map(c=>({state:c.state,x:c.pos.x,z:c.pos.z}))})));
+ const r=await page.evaluate(()=>{
+   sfx.enabled=false;
+   const step=(n)=>{for(let i=0;i<n;i++)updateGame(.05)};
+   player.pos.set(-4.5,.08,4.2);step(8);
+   const pickup={bay:dynamicCrates.length,carry:player.carryStack.length,obj:document.querySelector('#objective-text').textContent};
+   player.pos.set(-1.15,.08,1.8);step(8);
+   const stocked={carry:player.carryStack.length,shelf:shelves.map(s=>s.items.length)};
+   player.pos.set(-3.6,.08,-4.2);step(500);
+   const serve={sold:state.totalSold,cash:cashPileBundles.reduce((n,x)=>n+x.value,0),money:state.money,people:customers.map(c=>({s:c.state,x:+c.pos.x.toFixed(2),z:+c.pos.z.toFixed(2),target:c.targetPos?{x:+c.targetPos.x.toFixed(2),z:+c.targetPos.z.toFixed(2)}:null}))};
+   player.pos.set(-1.4,.08,-2.8);step(5);
+   const collected={sold:state.totalSold,money:state.money,cash:cashPileBundles.length};
+   orderSupplierDelivery('kokia',3);step(180);
+   const delivery={money:state.money,bay:dynamicCrates.length,queued:state.pendingOrders.length,truck:activeTruckAnim?.phase||null};
+   orderFurniture(FURNITURE[0]);
+   player.pos.set(-4.7,.08,4.2);step(3);grabFurniture();
+   const grabbed={carry:!!furnitureCarry,parcels:furnitureParcels.length};
+   player.pos.set(4,.08,3.7);cameraYaw=0;step(2);
+   const preview={valid:placementValid,x:furniturePreview?.position.x,z:furniturePreview?.position.z};
+   if(placementValid)placeFurniture();
+   const furniture={count:shelves.length,carry:!!furnitureCarry};
+   saveGame();
+   return {pickup,stocked,serve,collected,delivery,grabbed,preview,furniture,saved:JSON.parse(localStorage.getItem(SAVE_KEY))};
+ });
+ console.log(JSON.stringify(r,null,2));
+ await page.reload({waitUntil:'load'});
+ console.log('restored',await page.evaluate(()=>({money:state.money,sold:state.totalSold,bay:dynamicCrates.length,shelves:shelves.length,carry:player.carryStack.length,parcels:furnitureParcels.length,errors:window.__error})));
+ console.log('errors',errors);
+ await browser.close();
+})();
