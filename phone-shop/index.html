@@ -35,7 +35,7 @@
 @media(pointer:coarse) and (orientation:landscape){.hud-header{left:max(13px,env(safe-area-inset-left));right:max(13px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top))}.objective-card{left:max(13px,env(safe-area-inset-left));top:max(61px,calc(env(safe-area-inset-top) + 51px))}.actions{right:max(12px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom))}.bottom-left{left:max(13px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom))}.furniture-controls{right:max(12px,env(safe-area-inset-right))}}
 @media(max-height:400px) and (orientation:portrait){.orientation-illustration{width:60px;height:60px;margin-bottom:8px}.orientation-illustration svg{width:55px;height:55px}.orientation-card h2{font-size:20px}.orientation-card p{margin:6px 0 10px}}
 
-.graphics-settings{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #e4e3e8;margin-top:14px;padding-top:15px}.graphics-settings strong,.graphics-settings span{display:block}.graphics-settings strong{font-size:9px;letter-spacing:.12em;color:#858395}.graphics-settings span{font-size:10px;color:#8c8a97;margin-top:5px}.brightness-setting{display:flex;align-items:center;gap:9px}.brightness-setting input{width:145px;accent-color:#806fe4;touch-action:pan-x}.brightness-setting output{min-width:34px;font-size:10px;font-weight:800;color:#6a618c;text-align:right}@media(max-width:520px){.brightness-setting input{width:92px}.graphics-settings span{font-size:9px}}
+.graphics-settings{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid #e4e3e8;margin-top:14px;padding-top:15px}.graphics-settings strong,.graphics-settings span{display:block}.graphics-settings strong{font-size:9px;letter-spacing:.12em;color:#858395}.graphics-settings span{font-size:10px;color:#8c8a97;margin-top:5px;line-height:1.4}.graphics-settings output{display:inline;color:#6a618c;font-weight:800}.graphics-quality-setting select{min-width:120px;max-width:150px;padding:8px 10px;border:1px solid #e1deeb;border-radius:8px;background:#fff;color:#514b70;font-size:10px;font-weight:800;outline:none}.brightness-setting{display:flex;align-items:center;gap:9px}.brightness-setting input{width:145px;accent-color:#806fe4;touch-action:pan-x}.brightness-setting output{min-width:34px;font-size:10px;font-weight:800;color:#6a618c;text-align:right}@media(max-width:520px){.brightness-setting input{width:92px}.graphics-quality-setting select{min-width:105px;padding:8px 7px;font-size:9px}.graphics-settings span{font-size:9px;max-width:210px}}
 /* The portrait override remains usable on narrow phones, even with fullscreen control. */
 @media(pointer:coarse) and (orientation:portrait) and (max-width:520px){.brand-lockup>div:last-child{display:none}.hud-header{gap:6px}}
 @media(pointer:coarse) and (orientation:portrait) and (max-width:360px){.stat-icon{display:none}.stat{min-width:36px;padding:5px}.stat:first-child{min-width:61px}.icon-button{width:30px;min-height:30px}.header-right{gap:3px}}
@@ -119,6 +119,8 @@
         <div class="modal-scroll help-content">
           <div class="help-grid"><div class="help-tile"><span class="help-number">01</span><strong>Bring in stock</strong><p>Walk to the loading bay. Phones are picked up automatically when you get close.</p></div><div class="help-tile"><span class="help-number">02</span><strong>Fill the displays</strong><p>Carry phones over to a display table. Your stock is placed automatically.</p></div><div class="help-tile"><span class="help-number">03</span><strong>Make the sale</strong><p>Customers browse, then queue up. Stand behind the counter to check them out. Collect the cash nearby.</p></div><div class="help-tile"><span class="help-number">04</span><strong>Grow your shop</strong><p>Order more phones, place furniture, unlock brands and hire a team from the menus.</p></div></div>
           <div class="controls-sheet"><div><strong>DESKTOP</strong><p><b>W A S D</b> move &nbsp;·&nbsp; <b>Mouse</b> look (click, or drag in a preview) &nbsp;·&nbsp; <b>Esc</b> cursor</p><p><b>B / U</b> supplier / upgrades &nbsp;·&nbsp; <b>Hold F</b> move a display</p><p><b>E</b> grab &nbsp;·&nbsp; <b>R</b> rotate &nbsp;·&nbsp; <b>Space</b> place furniture</p></div><div><strong>TOUCH</strong><p>Drag on the left to move, drag on the right to look. Use the on-screen buttons for furniture.</p><p>Progress saves on this device when browser storage is available.</p></div></div>
+          <div class="graphics-settings"><div><strong>GRAPHICS PRESET</strong><span>Choose the balance between clarity and frame rate.</span></div><div class="graphics-quality-setting"><select id="graphics-quality" aria-label="Graphics quality"><option value="performance">Performance</option><option value="balanced" selected>Balanced</option><option value="high">High</option><option value="ultra">Ultra</option><option value="custom">Custom</option></select></div></div>
+          <div class="graphics-settings"><div><strong>MAX RENDER SCALE</strong><span>Current <output id="render-scale-current">115%</output> · Limit <output id="render-scale-value">115%</output></span></div><div class="brightness-setting"><input id="render-scale-control" type="range" min="65" max="150" step="5" value="115" aria-label="Maximum render scale"></div></div>
           <div class="graphics-settings"><div><strong>SHOP BRIGHTNESS</strong><span>Adjust the lighting to your screen.</span></div><div class="brightness-setting"><input id="brightness-control" type="range" min="55" max="105" step="1" value="72" aria-label="Shop brightness"><output id="brightness-value" for="brightness-control">72%</output></div></div>
           <div class="help-bottom"><span>Made for a fresh perspective. Your original shop loop, now in first person.</span><button id="btn-reset" class="reset-button">Reset progress</button></div>
         </div>
@@ -427,10 +429,20 @@
          **********************************************************************/
         const canvas = document.getElementById('game-canvas');
         const mobileGraphics = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+        const GRAPHICS_PRESETS = Object.freeze({
+            performance: { scale: .85 },
+            balanced: { scale: 1.15 },
+            high: { scale: 1.35 },
+            ultra: { scale: 1.50 }
+        });
+        let graphicsMode = 'balanced';
+        const initialGraphicsScale = GRAPHICS_PRESETS[graphicsMode].scale;
+        const initialDeviceRatio = window.devicePixelRatio || 1;
         const performanceQuality = {
-            maxRatio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? 1 : 1.25),
-            minRatio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? .65 : .75),
-            ratio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? .90 : 1.25),
+            requestedMaxRatio: initialGraphicsScale,
+            maxRatio: Math.min(initialDeviceRatio, initialGraphicsScale),
+            minRatio: Math.min(Math.min(initialDeviceRatio, initialGraphicsScale), mobileGraphics ? .65 : .75),
+            ratio: Math.min(initialDeviceRatio, initialGraphicsScale),
             elapsed: 0, frames: 0, goodWindows: 0
         };
         let renderer;
@@ -588,9 +600,12 @@
             if (Math.abs(next - performanceQuality.ratio) < .01) return;
             performanceQuality.ratio = next;
             renderer.setPixelRatio(next);
+            const current = document.getElementById('render-scale-current');
+            if (current) current.textContent = `${Math.round(next * 100)}%`;
         }
         function refreshDisplayScale() {
-            performanceQuality.maxRatio = Math.min(window.devicePixelRatio || 1, mobileGraphics ? 1 : 1.25);
+            const deviceRatio = window.devicePixelRatio || 1;
+            performanceQuality.maxRatio = Math.min(deviceRatio, performanceQuality.requestedMaxRatio);
             performanceQuality.minRatio = Math.min(performanceQuality.maxRatio, mobileGraphics ? .65 : .75);
             setRenderScale(Math.min(performanceQuality.ratio, performanceQuality.maxRatio));
         }
@@ -2119,6 +2134,34 @@
         document.getElementById('btn-close-help').onclick=()=>toggleTopDrawer(null);
         drawerOverlay.addEventListener('pointerdown',e=>{if(e.target===drawerOverlay)toggleTopDrawer(null);});
         document.getElementById('btn-sound').onclick=()=>{sfx.enabled=!sfx.enabled;showEl(document.getElementById('icon-sound-on'),sfx.enabled);showEl(document.getElementById('icon-sound-off'),!sfx.enabled);};
+        function syncGraphicsControls(){
+            const preset=document.getElementById('graphics-quality');
+            const slider=document.getElementById('render-scale-control');
+            const limit=document.getElementById('render-scale-value');
+            const current=document.getElementById('render-scale-current');
+            if(preset)preset.value=graphicsMode;
+            const requested=Math.round(performanceQuality.requestedMaxRatio*100);
+            if(slider)slider.value=String(requested);
+            if(limit)limit.textContent=`${requested}%`;
+            if(current)current.textContent=`${Math.round(performanceQuality.ratio*100)}%`;
+        }
+        function applyGraphicsSettings(mode, requestedRatio){
+            const isPreset=Object.prototype.hasOwnProperty.call(GRAPHICS_PRESETS,mode);
+            graphicsMode=isPreset?mode:'custom';
+            const requested=isPreset?GRAPHICS_PRESETS[mode].scale:Number(requestedRatio);
+            performanceQuality.requestedMaxRatio=THREE.MathUtils.clamp(Number.isFinite(requested)?requested:1.15,.65,1.5);
+            refreshDisplayScale();
+            setRenderScale(performanceQuality.maxRatio);
+            syncGraphicsControls();
+            saveGame();
+        }
+        document.getElementById('graphics-quality').addEventListener('change',event=>{
+            const mode=event.target.value;
+            applyGraphicsSettings(mode,performanceQuality.requestedMaxRatio);
+        });
+        document.getElementById('render-scale-control').addEventListener('input',event=>{
+            applyGraphicsSettings('custom',Number(event.target.value)/100);
+        });
         function syncBrightnessControl(){
             const value=Math.round(renderer.toneMappingExposure*100);
             document.getElementById('brightness-control').value=String(value);
@@ -2781,7 +2824,8 @@
                     cash:cashPileBundles.reduce((n,b)=>n+b.value,0),
                     orders:state.pendingOrders.map(o=>({id:o.brand.id,count:o.count})),
                     player:{x:player.pos.x,z:player.pos.z,yaw:cameraYaw,pitch:cameraPitch},
-                    timeOfDay,exposure:renderer.toneMappingExposure
+                    timeOfDay,exposure:renderer.toneMappingExposure,
+                    graphicsMode,graphicsMaxRatio:performanceQuality.requestedMaxRatio
                 };
                 localStorage.setItem(SAVE_KEY,JSON.stringify(data));
             }catch(e){ /* Some embedded previews intentionally disallow storage. */ }
@@ -2790,6 +2834,14 @@
             let data;try{data=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch(_){return false;}
             if(!data||data.version!==1||!Array.isArray(data.shelves))return false;
             try{
+                const savedPreset=Object.prototype.hasOwnProperty.call(GRAPHICS_PRESETS,data.graphicsMode)?GRAPHICS_PRESETS[data.graphicsMode]:null;
+                if(savedPreset||data.graphicsMode==='custom'){
+                    graphicsMode=savedPreset?data.graphicsMode:'custom';
+                    const savedMax=Number(data.graphicsMaxRatio);
+                    performanceQuality.requestedMaxRatio=savedPreset?savedPreset.scale:THREE.MathUtils.clamp(Number.isFinite(savedMax)?savedMax:1.15,.65,1.5);
+                    refreshDisplayScale();
+                    setRenderScale(performanceQuality.maxRatio);
+                }
                 state.money=Math.max(0,Number(data.money)||0);
                 state.totalSold=Math.max(0,Number(data.totalSold)||0);
                 state.totalRevenue=Math.max(0,Number(data.totalRevenue)||0);
@@ -2890,7 +2942,7 @@
         function bootstrap(){
             const restored=restoreGame();
             if(!restored)spawnSupplyCrateAtBay(PHONE_BRANDS[0],1,true);
-            spawnCustomer();optimizeStaticWorld();syncBrightnessControl();renderAllMenus();updateHUD();
+            spawnCustomer();optimizeStaticWorld();syncGraphicsControls();syncBrightnessControl();renderAllMenus();updateHUD();
             requestAnimationFrame(animate);
             setInterval(saveGame,5000);
         }

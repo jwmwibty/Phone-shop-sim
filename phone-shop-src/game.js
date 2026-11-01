@@ -282,10 +282,20 @@ const POSTER_DATA = "__POSTER__";
          **********************************************************************/
         const canvas = document.getElementById('game-canvas');
         const mobileGraphics = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+        const GRAPHICS_PRESETS = Object.freeze({
+            performance: { scale: .85 },
+            balanced: { scale: 1.15 },
+            high: { scale: 1.35 },
+            ultra: { scale: 1.50 }
+        });
+        let graphicsMode = 'balanced';
+        const initialGraphicsScale = GRAPHICS_PRESETS[graphicsMode].scale;
+        const initialDeviceRatio = window.devicePixelRatio || 1;
         const performanceQuality = {
-            maxRatio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? 1 : 1.25),
-            minRatio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? .65 : .75),
-            ratio: Math.min(window.devicePixelRatio || 1, mobileGraphics ? .90 : 1.25),
+            requestedMaxRatio: initialGraphicsScale,
+            maxRatio: Math.min(initialDeviceRatio, initialGraphicsScale),
+            minRatio: Math.min(Math.min(initialDeviceRatio, initialGraphicsScale), mobileGraphics ? .65 : .75),
+            ratio: Math.min(initialDeviceRatio, initialGraphicsScale),
             elapsed: 0, frames: 0, goodWindows: 0
         };
         let renderer;
@@ -443,9 +453,12 @@ const POSTER_DATA = "__POSTER__";
             if (Math.abs(next - performanceQuality.ratio) < .01) return;
             performanceQuality.ratio = next;
             renderer.setPixelRatio(next);
+            const current = document.getElementById('render-scale-current');
+            if (current) current.textContent = `${Math.round(next * 100)}%`;
         }
         function refreshDisplayScale() {
-            performanceQuality.maxRatio = Math.min(window.devicePixelRatio || 1, mobileGraphics ? 1 : 1.25);
+            const deviceRatio = window.devicePixelRatio || 1;
+            performanceQuality.maxRatio = Math.min(deviceRatio, performanceQuality.requestedMaxRatio);
             performanceQuality.minRatio = Math.min(performanceQuality.maxRatio, mobileGraphics ? .65 : .75);
             setRenderScale(Math.min(performanceQuality.ratio, performanceQuality.maxRatio));
         }
@@ -1974,6 +1987,34 @@ const POSTER_DATA = "__POSTER__";
         document.getElementById('btn-close-help').onclick=()=>toggleTopDrawer(null);
         drawerOverlay.addEventListener('pointerdown',e=>{if(e.target===drawerOverlay)toggleTopDrawer(null);});
         document.getElementById('btn-sound').onclick=()=>{sfx.enabled=!sfx.enabled;showEl(document.getElementById('icon-sound-on'),sfx.enabled);showEl(document.getElementById('icon-sound-off'),!sfx.enabled);};
+        function syncGraphicsControls(){
+            const preset=document.getElementById('graphics-quality');
+            const slider=document.getElementById('render-scale-control');
+            const limit=document.getElementById('render-scale-value');
+            const current=document.getElementById('render-scale-current');
+            if(preset)preset.value=graphicsMode;
+            const requested=Math.round(performanceQuality.requestedMaxRatio*100);
+            if(slider)slider.value=String(requested);
+            if(limit)limit.textContent=`${requested}%`;
+            if(current)current.textContent=`${Math.round(performanceQuality.ratio*100)}%`;
+        }
+        function applyGraphicsSettings(mode, requestedRatio){
+            const isPreset=Object.prototype.hasOwnProperty.call(GRAPHICS_PRESETS,mode);
+            graphicsMode=isPreset?mode:'custom';
+            const requested=isPreset?GRAPHICS_PRESETS[mode].scale:Number(requestedRatio);
+            performanceQuality.requestedMaxRatio=THREE.MathUtils.clamp(Number.isFinite(requested)?requested:1.15,.65,1.5);
+            refreshDisplayScale();
+            setRenderScale(performanceQuality.maxRatio);
+            syncGraphicsControls();
+            saveGame();
+        }
+        document.getElementById('graphics-quality').addEventListener('change',event=>{
+            const mode=event.target.value;
+            applyGraphicsSettings(mode,performanceQuality.requestedMaxRatio);
+        });
+        document.getElementById('render-scale-control').addEventListener('input',event=>{
+            applyGraphicsSettings('custom',Number(event.target.value)/100);
+        });
         function syncBrightnessControl(){
             const value=Math.round(renderer.toneMappingExposure*100);
             document.getElementById('brightness-control').value=String(value);
@@ -2636,7 +2677,8 @@ const POSTER_DATA = "__POSTER__";
                     cash:cashPileBundles.reduce((n,b)=>n+b.value,0),
                     orders:state.pendingOrders.map(o=>({id:o.brand.id,count:o.count})),
                     player:{x:player.pos.x,z:player.pos.z,yaw:cameraYaw,pitch:cameraPitch},
-                    timeOfDay,exposure:renderer.toneMappingExposure
+                    timeOfDay,exposure:renderer.toneMappingExposure,
+                    graphicsMode,graphicsMaxRatio:performanceQuality.requestedMaxRatio
                 };
                 localStorage.setItem(SAVE_KEY,JSON.stringify(data));
             }catch(e){ /* Some embedded previews intentionally disallow storage. */ }
@@ -2645,6 +2687,14 @@ const POSTER_DATA = "__POSTER__";
             let data;try{data=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');}catch(_){return false;}
             if(!data||data.version!==1||!Array.isArray(data.shelves))return false;
             try{
+                const savedPreset=Object.prototype.hasOwnProperty.call(GRAPHICS_PRESETS,data.graphicsMode)?GRAPHICS_PRESETS[data.graphicsMode]:null;
+                if(savedPreset||data.graphicsMode==='custom'){
+                    graphicsMode=savedPreset?data.graphicsMode:'custom';
+                    const savedMax=Number(data.graphicsMaxRatio);
+                    performanceQuality.requestedMaxRatio=savedPreset?savedPreset.scale:THREE.MathUtils.clamp(Number.isFinite(savedMax)?savedMax:1.15,.65,1.5);
+                    refreshDisplayScale();
+                    setRenderScale(performanceQuality.maxRatio);
+                }
                 state.money=Math.max(0,Number(data.money)||0);
                 state.totalSold=Math.max(0,Number(data.totalSold)||0);
                 state.totalRevenue=Math.max(0,Number(data.totalRevenue)||0);
@@ -2745,7 +2795,7 @@ const POSTER_DATA = "__POSTER__";
         function bootstrap(){
             const restored=restoreGame();
             if(!restored)spawnSupplyCrateAtBay(PHONE_BRANDS[0],1,true);
-            spawnCustomer();optimizeStaticWorld();syncBrightnessControl();renderAllMenus();updateHUD();
+            spawnCustomer();optimizeStaticWorld();syncGraphicsControls();syncBrightnessControl();renderAllMenus();updateHUD();
             requestAnimationFrame(animate);
             setInterval(saveGame,5000);
         }

@@ -49,9 +49,13 @@
             if (Math.abs(next - performanceQuality.ratio) < .01) return;
             performanceQuality.ratio = next;
             renderer.setPixelRatio(next);
+            const current = document.getElementById('render-scale-current');
+            if (current) current.textContent = `${Math.round(next * 100)}%`;
         }
         function refreshDisplayScale() {
-            performanceQuality.maxRatio = Math.min(window.devicePixelRatio || 1, mobileGraphics ? 1 : 1.25);
+            const deviceRatio = window.devicePixelRatio || 1;
+            const requestedMax = Number.isFinite(performanceQuality.requestedMaxRatio) ? performanceQuality.requestedMaxRatio : (mobileGraphics ? 1.15 : 1.35);
+            performanceQuality.maxRatio = Math.min(deviceRatio, requestedMax);
             performanceQuality.minRatio = Math.min(performanceQuality.maxRatio, mobileGraphics ? .65 : .75);
             setRenderScale(Math.min(performanceQuality.ratio, performanceQuality.maxRatio));
         }
